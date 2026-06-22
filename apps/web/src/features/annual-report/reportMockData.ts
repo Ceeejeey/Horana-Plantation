@@ -39,6 +39,7 @@ export const CHAIRMAN_MESSAGE = {
   signature: "A M Pandithage",
   pdfSection: "Chairman's Message",
   audioLabel: "Chairman's Message",
+  audioSrc: STORAGE_ASSETS.audio.chairman,
 };
 
 export const MD_REVIEW = {
@@ -52,6 +53,7 @@ export const MD_REVIEW = {
   signature: "Roshan Rajadurai",
   pdfSection: "Managing Director's Review",
   audioLabel: "Managing Director's Review",
+  audioSrc: STORAGE_ASSETS.audio.md,
 };
 
 export interface LeaderProfile {
@@ -64,6 +66,7 @@ export interface LeaderProfile {
   signature: string;
   pdfSection: string;
   audioLabel: string;
+  audioSrc: string;
 }
 
 export interface FinancialHighlight {

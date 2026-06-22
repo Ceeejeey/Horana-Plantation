@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { PointerEvent } from "react";
 import { motion, type Variants } from "motion/react";
 import { ArrowDown } from "lucide-react";
@@ -24,13 +24,32 @@ const fadeUp: Variants = {
   },
 };
 
+function useViewportWidth() {
+  const [width, setWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1280,
+  );
+
+  useEffect(() => {
+    const onResize = () => setWidth(window.innerWidth);
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  return width;
+}
+
 export function ReportHeroShowcase({
   variant = "released",
   className = "",
   embedded = false,
 }: ReportHeroShowcaseProps) {
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
+  const viewportWidth = useViewportWidth();
   const isComingSoon = variant === "coming-soon";
+  const isMobile = viewportWidth < 640;
+  const isTablet = viewportWidth >= 640 && viewportWidth < 1024;
+  const cubeSizeMultiplier = isMobile ? 0.82 : isTablet ? 0.95 : 1.08;
 
   const handlePointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -48,39 +67,46 @@ export function ReportHeroShowcase({
 
   return (
     <div
-      className={`report-hero relative overflow-visible ${className}`}
+      className={`report-hero relative overflow-visible ${embedded ? "report-hero--embedded" : ""} ${className}`}
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
     >
-      <div className={`relative z-10 w-full max-w-6xl mx-auto ${embedded ? "px-0" : "px-4 sm:px-6 lg:px-8"}`}>
+      <div
+        className={`relative z-10 mx-auto w-full max-w-6xl ${
+          embedded ? "px-0" : "px-4 sm:px-6 lg:px-8"
+        }`}
+      >
         {!isComingSoon && !embedded && (
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.3 }}
             transition={{ staggerChildren: 0.08 }}
-            className="mb-10 sm:mb-12 max-w-3xl"
+            className="mb-10 max-w-3xl sm:mb-12"
           >
-            <motion.div variants={fadeUp} className="flex items-center gap-4 mb-4">
+            <motion.div variants={fadeUp} className="mb-4 flex items-center gap-4">
               <span className="h-px w-12 bg-gradient-to-r from-[#C5A059] to-transparent" />
-              <span className="text-[10px] font-mono tracking-[0.35em] uppercase text-[#C5A059] font-bold">
-                01 / Entrance
+              <span className="text-[10px] font-mono font-bold uppercase tracking-[0.35em] text-[#C5A059]">
+                Entrance
               </span>
             </motion.div>
             <motion.h2
               variants={fadeUp}
-              className="text-3xl sm:text-4xl lg:text-5xl font-serif text-white leading-tight italic"
+              className="font-serif text-3xl italic leading-tight text-white sm:text-4xl lg:text-5xl"
             >
               Welcome to Our Annual Report
             </motion.h2>
-            <motion.p variants={fadeUp} className="mt-3 text-sm sm:text-base text-zinc-400 max-w-2xl">
+            <motion.p
+              variants={fadeUp}
+              className="mt-3 max-w-2xl text-sm text-zinc-400 sm:text-base"
+            >
               An immersive gateway into how Horana Plantations creates value across six
               integrated capitals.
             </motion.p>
           </motion.div>
         )}
 
-        <div className="grid w-full items-center gap-12 overflow-visible lg:gap-14 lg:grid-cols-[1.08fr_auto]">
+        <div className="grid w-full items-center gap-10 overflow-visible sm:gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-14">
           <motion.div
             initial={{ opacity: 0, y: 28 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -88,19 +114,22 @@ export function ReportHeroShowcase({
             transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
             className="mx-auto flex w-full max-w-[520px] flex-col items-center overflow-visible lg:items-start"
           >
-            <div className="report-hero-book-stage relative w-full flex justify-center overflow-visible lg:justify-start">
+            <div className="report-hero-book-stage relative flex w-full justify-center overflow-visible">
               <div className="report-hero-pedestal" aria-hidden />
               <div className="report-hero-ring" aria-hidden />
               <AnnualReportBookBlock variant="hero" className="relative z-10" />
             </div>
 
-            <div className="mt-6 max-w-[360px] text-center lg:text-left">
+            <div className="mt-5 max-w-[360px] text-center lg:mt-6 lg:text-left">
               <p className="report-hero-slogan font-serif text-2xl italic text-[#E5C079] sm:text-3xl">
                 {REPORT_META.tagline}
               </p>
-              <p className="mt-3 text-sm leading-relaxed text-zinc-300 sm:text-base">
+              <p className="mt-3 text-sm leading-relaxed text-zinc-400 sm:text-base">
                 Growth is achieved not by simplifying complexity, but by understanding how
-                each move made to further a goal, affects the whole operation.
+                each move made to further a goal affects the whole operation.
+              </p>
+              <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.22em] text-zinc-500">
+                {REPORT_META.company}
               </p>
             </div>
           </motion.div>
@@ -121,7 +150,7 @@ export function ReportHeroShowcase({
 
             <motion.h3
               variants={fadeUp}
-              className="mt-5 max-w-lg font-serif text-2xl font-bold leading-tight text-white sm:text-4xl"
+              className="mt-4 max-w-lg font-serif text-2xl font-bold leading-tight text-white sm:mt-5 sm:text-3xl lg:text-4xl"
             >
               {isComingSoon ? (
                 <>
@@ -137,18 +166,18 @@ export function ReportHeroShowcase({
 
             <motion.p
               variants={fadeUp}
-              className="mt-4 max-w-lg text-sm leading-relaxed text-zinc-400 sm:text-base"
+              className="mt-3 max-w-lg text-sm leading-relaxed text-zinc-400 sm:mt-4 sm:text-base"
             >
               {isComingSoon
                 ? "The interactive annual report is being finalized — financial, manufactured, intellectual, human, social, and natural capital in one immersive experience."
                 : `Explore our ${REPORT_META.year} integrated report — financial, manufactured, intellectual, human, social, and natural capital in one immersive experience.`}
             </motion.p>
 
-            <motion.div variants={fadeUp} className="report-hero-cube-stage mt-4">
+            <motion.div variants={fadeUp} className="report-hero-cube-stage mt-3 sm:mt-4">
               <div className="report-hero-cube-glow" aria-hidden />
               <RubikCube3D
                 mode="interactive"
-                sizeMultiplier={1.1}
+                sizeMultiplier={cubeSizeMultiplier}
                 parallax={parallax}
                 className="relative z-10 cursor-grab active:cursor-grabbing"
               />
@@ -167,7 +196,7 @@ export function ReportHeroShowcase({
             <span className="text-[9px] font-mono uppercase tracking-[0.35em]">
               Scroll to explore chapters
             </span>
-            <ArrowDown className="w-4 h-4 animate-bounce" />
+            <ArrowDown className="h-4 w-4 animate-bounce" />
           </motion.div>
         )}
       </div>
@@ -179,12 +208,17 @@ export function ReportHeroShowcase({
 
 const heroShowcaseStyles = `
   .report-hero-book-stage {
-    min-height: 420px;
+    min-height: clamp(300px, 48vh, 420px);
     width: 100%;
     overflow: visible;
-    padding-left: clamp(2rem, 8vw, 5rem);
-    padding-right: 1rem;
+    padding-inline: clamp(0.5rem, 3vw, 1.5rem);
   }
+
+  .report-hero--embedded .report-hero-book-stage {
+    padding-inline: 0;
+    justify-content: center;
+  }
+
   .report-hero-pedestal {
     position: absolute;
     bottom: 10%;
@@ -196,6 +230,7 @@ const heroShowcaseStyles = `
     filter: blur(26px);
     animation: report-hero-pulse 5s ease-in-out infinite;
   }
+
   .report-hero-ring {
     position: absolute;
     bottom: 15%;
@@ -207,10 +242,12 @@ const heroShowcaseStyles = `
     background: radial-gradient(ellipse at center, rgba(0,0,0,0.5) 0%, transparent 72%);
     filter: blur(5px);
   }
+
   .report-hero-book-stage .book-container {
     padding: 16px 6px 24px !important;
     overflow: visible !important;
   }
+
   .report-hero-book-stage .book-outer.is-open {
     z-index: 50;
   }
@@ -224,13 +261,14 @@ const heroShowcaseStyles = `
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 280px;
+    min-height: clamp(220px, 34vh, 300px);
     width: 100%;
   }
+
   .report-hero-cube-glow {
     position: absolute;
-    width: 220px;
-    height: 220px;
+    width: clamp(180px, 42vw, 220px);
+    height: clamp(180px, 42vw, 220px);
     border-radius: 50%;
     background: radial-gradient(circle, rgba(197,160,89,0.14) 0%, transparent 70%);
     filter: blur(30px);
@@ -241,13 +279,32 @@ const heroShowcaseStyles = `
     0%, 100% { opacity: 0.65; transform: translateX(-50%) scale(1); }
     50% { opacity: 1; transform: translateX(-50%) scale(1.05); }
   }
+
   @keyframes report-hero-cube-pulse {
     0%, 100% { opacity: 0.6; transform: scale(1); }
     50% { opacity: 1; transform: scale(1.08); }
   }
+
   @keyframes report-hero-slogan-glow {
     0%, 100% { text-shadow: 0 0 20px rgba(229,192,121,0.15); }
     50% { text-shadow: 0 0 32px rgba(229,192,121,0.35); }
+  }
+
+  @media (max-width: 1023px) {
+    .report-hero--embedded .report-hero-book-stage {
+      min-height: clamp(280px, 44vh, 380px);
+    }
+
+    .report-hero-book-stage .book-outer {
+      transform: scale(0.9);
+      transform-origin: center bottom;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .report-hero-book-stage .book-outer {
+      transform: none;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {

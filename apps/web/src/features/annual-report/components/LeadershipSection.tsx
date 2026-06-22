@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Users2 } from "lucide-react";
 import { ReportSectionShell } from "./ReportSectionShell";
 import { LeadershipCard } from "./LeadershipCard";
 import { CHAIRMAN_MESSAGE, MD_REVIEW } from "../reportMockData";
+import { REPORT_CHAPTER_TAGS } from "../reportNavigation";
 
 const LEADERS = [
   { id: "chairman-message", leader: CHAIRMAN_MESSAGE, variant: "gold" as const },
@@ -18,7 +19,7 @@ export function LeadershipSection() {
   return (
     <ReportSectionShell
       id="leadership"
-      chapter="05 / Leadership"
+      chapter={REPORT_CHAPTER_TAGS.leadership}
       title="Executive Leadership"
       subtitle="Perspectives from our Chairman and Managing Director on governance, systemic balance, and the integrated path forward."
       align="center"

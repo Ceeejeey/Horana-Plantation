@@ -457,13 +457,9 @@ export function CapitalCubeCarousel({
           </button>
         </div>
 
-        <p className="text-[9px] font-mono uppercase tracking-[0.35em] text-zinc-500">
-          <span className="text-[#C5A059]">0{focusIdx + 1}</span>
-          <span className="mx-2 text-zinc-700">/</span>
-          <span>06</span>
-          <span className="mx-3 text-zinc-700">·</span>
-          <span className="capitalize text-zinc-400">
-            {CAPITALS_DATA[focusIdx]?.id ?? "financial"} capital
+        <p className="text-[9px] font-mono uppercase tracking-[0.35em] text-zinc-500 capitalize">
+          <span className="text-[#C5A059]">
+            {CAPITALS_DATA[focusIdx]?.id ?? "financial"} Capital
           </span>
         </p>
       </div>

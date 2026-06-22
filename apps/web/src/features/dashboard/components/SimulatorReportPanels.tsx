@@ -43,7 +43,7 @@ export function SimulatorReportPanels() {
         </span>
         <h3 className="font-serif text-2xl italic text-white sm:text-3xl">
           Report Streams ·{" "}
-          <span className="text-[#E5C079] not-italic">07 — 09</span>
+          <span className="text-[#E5C079] not-italic">Financial · Graphs · ESG</span>
         </h3>
         <p className="max-w-2xl font-mono text-[10px] uppercase leading-relaxed tracking-wider text-zinc-500">
           Live figures from Financial Performance, Ten Year Success Story graphs and ESG
@@ -67,7 +67,7 @@ export function SimulatorReportPanels() {
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
-              {s.chapter.split(" / ")[1]}
+              {s.chapter}
             </button>
           );
         })}

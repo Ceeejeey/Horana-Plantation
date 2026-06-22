@@ -6,6 +6,7 @@ import { FinancialPerformanceSection } from "./components/FinancialPerformanceSe
 import { SuccessStoryGraphsSection } from "./components/SuccessStoryGraphsSection";
 import { EsgPerformanceSection } from "./components/EsgPerformanceSection";
 import { CapitalsSplitView } from "../capitals/layouts/CapitalsSplitView";
+import { REPORT_CHAPTER_TAGS } from "./reportNavigation";
 
 export function AnnualReportView() {
   return (
@@ -17,7 +18,7 @@ export function AnnualReportView() {
         <CapitalsSplitView
           variant="chapter"
           chapterIntro={{
-            chapter: "04 / Six Capitals",
+            chapter: REPORT_CHAPTER_TAGS.sixCapitals,
             title: "Six Capitals of Report Content",
             subtitle:
               "Scroll through each capital — the cube gallery shifts horizontally as you read.",

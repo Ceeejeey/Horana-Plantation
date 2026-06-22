@@ -18,6 +18,7 @@ import {
   performanceContainerVariants,
 } from "./PerformanceHighlightAnimations";
 import { ESG_HIGHLIGHTS, type FinancialHighlight } from "../reportMockData";
+import { REPORT_CHAPTER_TAGS } from "../reportNavigation";
 
 const ESG_ICONS = [Sprout, ShieldCheck, Leaf, Sprout] as const;
 
@@ -166,7 +167,7 @@ export function EsgPerformanceSection() {
   return (
     <ReportSectionShell
       id="esg-performance"
-      chapter="09 / ESG"
+      chapter={REPORT_CHAPTER_TAGS.esg}
       title="ESG Performance"
       subtitle="Integrated environmental, social and governance outcomes — profitability, shareholder value and sustainable capital growth for 2025/26."
       align="center"

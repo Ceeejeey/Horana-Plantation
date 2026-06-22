@@ -96,7 +96,7 @@ export function LeadershipCard({ id, leader, variant, index }: LeadershipCardPro
   const isInView = useInView(ref, { once: true, amount: 0.15 });
   const theme = THEME[variant];
   const BadgeIcon = theme.icon;
-  const { playing, activeWord, words, toggle } = useLeadershipNarration(leader.quote);
+  const { playing, toggle } = useLeadershipNarration(leader.audioSrc);
   const [pdfOpen, setPdfOpen] = useState(false);
 
   const handleDownload = () => {
@@ -195,32 +195,7 @@ export function LeadershipCard({ id, leader, variant, index }: LeadershipCardPro
             </div>
 
             <blockquote className="font-serif text-sm italic leading-[1.8] text-zinc-300 sm:text-[15px]">
-              {playing ? (
-                <>
-                  &ldquo;
-                  {words.map((item, i) => {
-                    const isActive = i === activeWord;
-                    const isPast = i < activeWord;
-                    return (
-                      <span key={`${item.start}-${item.word}`}>
-                        <motion.span
-                          animate={{
-                            color: isActive ? theme.accentLight : isPast ? "#e4e4e7" : "#a1a1aa",
-                          }}
-                          transition={{ duration: 0.15 }}
-                          className={isActive ? "font-medium not-italic" : ""}
-                        >
-                          {item.word}
-                        </motion.span>
-                        {i < words.length - 1 ? " " : ""}
-                      </span>
-                    );
-                  })}
-                  &rdquo;
-                </>
-              ) : (
-                <>&ldquo;{leader.quote}&rdquo;</>
-              )}
+              &ldquo;{leader.quote}&rdquo;
             </blockquote>
           </div>
         </div>

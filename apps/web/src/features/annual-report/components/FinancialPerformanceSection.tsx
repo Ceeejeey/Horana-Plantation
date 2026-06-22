@@ -19,6 +19,7 @@ import {
   performanceContainerVariants,
 } from "./PerformanceHighlightAnimations";
 import { FINANCIAL_HIGHLIGHTS, type FinancialHighlight } from "../reportMockData";
+import { REPORT_CHAPTER_TAGS } from "../reportNavigation";
 
 const FINANCIAL_ICONS = [Coins, TrendingUp, Landmark, BarChart3] as const;
 
@@ -186,7 +187,7 @@ export function FinancialPerformanceSection() {
   return (
     <ReportSectionShell
       id="financial-performance"
-      chapter="07 / Financial"
+      chapter={REPORT_CHAPTER_TAGS.financial}
       title="Financial Performance"
       subtitle="Audited headline indicators for 2025/26 — revenue momentum, market valuation, equity strength and earnings efficiency."
       align="center"

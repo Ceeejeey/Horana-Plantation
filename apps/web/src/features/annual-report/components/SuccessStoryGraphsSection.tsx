@@ -1,11 +1,12 @@
 import { ReportSectionShell } from "./ReportSectionShell";
 import { TenYearSummaryDashboard } from "./TenYearSummaryDashboard";
+import { REPORT_CHAPTER_TAGS } from "../reportNavigation";
 
 export function SuccessStoryGraphsSection() {
   return (
     <ReportSectionShell
       id="success-story"
-      chapter="08 / Success Story"
+      chapter={REPORT_CHAPTER_TAGS.successStory}
       title="Graphical Representation of Our Success Story"
       subtitle="Fifteen-year financial trajectory across operating results, balance sheet strength, cash flows and key performance indicators."
       align="center"

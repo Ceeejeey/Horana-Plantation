@@ -1,5 +1,7 @@
 import chairmanPortrait from "@/assets/images/charmen.png";
 import mdPortrait from "@/assets/images/MD.png";
+import chairmanAudio from "@/assets/audio/charmen.mp3";
+import mdAudio from "@/assets/audio/md.mp3";
 import { getStorageAssetUrl } from "@/lib/storageUrl";
 
 /** Firebase Storage URLs for files under `gs://…/assets/` (not bundled in Hosting). */
@@ -7,6 +9,10 @@ export const STORAGE_ASSETS = {
   images: {
     chairmanPortrait,
     mdPortrait,
+  },
+  audio: {
+    chairman: chairmanAudio,
+    md: mdAudio,
   },
   coverPage: {
     cover: getStorageAssetUrl(

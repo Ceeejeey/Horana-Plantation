@@ -114,7 +114,7 @@ export function DemoCarousel() {
           Financial · <span className="text-[#C5A059] not-italic font-bold">Success Story · ESG</span>
         </h3>
         <p className="text-[11px] text-zinc-500 font-sans mt-2 max-w-md mx-auto leading-relaxed">
-          Swipe between audited report chapters 07, 08 and 09. All metrics sync with the home page annual report.
+          Swipe between Financial Performance, Success Story and ESG report streams. All metrics sync with the home page annual report.
         </p>
       </div>
 

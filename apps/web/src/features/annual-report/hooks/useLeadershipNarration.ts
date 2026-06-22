@@ -1,103 +1,62 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-export interface WordSpan {
-  word: string;
-  start: number;
-}
+const LEADERSHIP_AUDIO_STOP = "leadership-audio-stop";
 
-function buildWordSpans(quote: string): WordSpan[] {
-  const result: WordSpan[] = [];
-  const regex = /\S+/g;
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(quote)) !== null) {
-    result.push({ word: match[0], start: match.index });
-  }
-  return result;
-}
-
-function wordIndexAtChar(words: WordSpan[], charIndex: number): number {
-  let idx = 0;
-  for (let i = 0; i < words.length; i++) {
-    if (words[i].start <= charIndex) idx = i;
-    else break;
-  }
-  return idx;
-}
-
-export function useLeadershipNarration(quote: string) {
-  const words = useMemo(() => buildWordSpans(quote), [quote]);
+export function useLeadershipNarration(audioSrc: string) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
-  const [activeWord, setActiveWord] = useState(-1);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const wordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stop = useCallback(() => {
-    window.speechSynthesis?.cancel();
-    if (wordTimerRef.current) {
-      clearInterval(wordTimerRef.current);
-      wordTimerRef.current = null;
-    }
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
     setPlaying(false);
-    setActiveWord(-1);
-    utteranceRef.current = null;
   }, []);
+
+  useEffect(() => {
+    const audio = new Audio(audioSrc);
+    audioRef.current = audio;
+
+    const onEnded = () => setPlaying(false);
+    const onError = () => setPlaying(false);
+    const onExternalStop = (event: Event) => {
+      const detail = (event as CustomEvent<string>).detail;
+      if (detail !== audioSrc) stop();
+    };
+
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("error", onError);
+    window.addEventListener(LEADERSHIP_AUDIO_STOP, onExternalStop);
+
+    return () => {
+      audio.pause();
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("error", onError);
+      window.removeEventListener(LEADERSHIP_AUDIO_STOP, onExternalStop);
+      audioRef.current = null;
+    };
+  }, [audioSrc, stop]);
 
   useEffect(() => () => stop(), [stop]);
 
-  const startWordFallback = useCallback(
-    (utterance: SpeechSynthesisUtterance) => {
-      const wpm = 145 * (utterance.rate || 0.9);
-      const msPerWord = Math.max(180, (60_000 / wpm) * 1.1);
-      let idx = 0;
-      setActiveWord(0);
-      wordTimerRef.current = setInterval(() => {
-        idx += 1;
-        if (idx >= words.length) {
-          if (wordTimerRef.current) clearInterval(wordTimerRef.current);
-          return;
-        }
-        setActiveWord(idx);
-      }, msPerWord);
-    },
-    [words.length],
-  );
-
   const toggle = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
     if (playing) {
       stop();
       return;
     }
 
-    if (!window.speechSynthesis) {
-      alert("Voice playback is not supported in this browser.");
-      return;
-    }
+    window.dispatchEvent(new CustomEvent(LEADERSHIP_AUDIO_STOP, { detail: audioSrc }));
+    audio.currentTime = 0;
+    void audio.play()
+      .then(() => setPlaying(true))
+      .catch(() => {
+        setPlaying(false);
+      });
+  }, [playing, audioSrc, stop]);
 
-    const utterance = new SpeechSynthesisUtterance(quote);
-    utterance.rate = 0.9;
-    utterance.pitch = 0.95;
-    utterance.onend = () => stop();
-    utterance.onerror = () => stop();
-
-    let boundarySupported = false;
-    utterance.onboundary = (event) => {
-      boundarySupported = true;
-      if (event.name === "word" || event.charIndex >= 0) {
-        setActiveWord(wordIndexAtChar(words, event.charIndex));
-      }
-    };
-
-    utteranceRef.current = utterance;
-    setPlaying(true);
-    setActiveWord(0);
-    window.speechSynthesis.speak(utterance);
-
-    setTimeout(() => {
-      if (!boundarySupported && utteranceRef.current) {
-        startWordFallback(utterance);
-      }
-    }, 400);
-  }, [playing, quote, stop, startWordFallback, words]);
-
-  return { playing, activeWord, words, toggle, stop };
+  return { playing, toggle, stop };
 }

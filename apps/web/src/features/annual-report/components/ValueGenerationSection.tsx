@@ -1,11 +1,12 @@
 import { ReportSectionShell } from "./ReportSectionShell";
 import { BusinessModelDiagram } from "./BusinessModelDiagram";
+import { REPORT_CHAPTER_TAGS } from "../reportNavigation";
 
 export function ValueGenerationSection() {
   return (
     <ReportSectionShell
       id="value-generation"
-      chapter="03 / Value Generation"
+      chapter={REPORT_CHAPTER_TAGS.valueGeneration}
       title="Value Generation Process"
       subtitle="Our integrated business model — from estate activities and operations through to governance-led value creation."
       align="center"

@@ -1,6 +1,6 @@
 import { CAPITALS_DATA } from "./capitalsData";
 
-/** Y-position where each "0X / 06 Capital Series" label locks the carousel (px from viewport top). */
+/** Y-position where each capital chapter label locks the carousel (px from viewport top). */
 export const SERIES_ANCHOR_Y = 112; // NAVBAR_OFFSET (80) + 32
 
 export function getSeriesMarkerTops(): number[] | null {

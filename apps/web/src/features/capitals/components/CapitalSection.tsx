@@ -84,8 +84,8 @@ export function CapitalSection() {
                 {/* Vertical indexing line */}
                 <div className="flex items-center gap-4 mb-4">
                   <span className="h-[1px] w-12 bg-[#C5A059]"></span>
-                  <span className="text-[#C5A059] uppercase tracking-[0.4em] text-[10px] font-bold font-mono">
-                    0{capital.index} / 06 Capital Series
+                  <span className="text-[#C5A059] uppercase tracking-[0.35em] text-[10px] font-bold font-mono capitalize">
+                    {capital.id} Capital
                   </span>
                   <div className="h-[1px] flex-grow bg-white/5 border-dashed max-w-[80px]"></div>
                 </div>

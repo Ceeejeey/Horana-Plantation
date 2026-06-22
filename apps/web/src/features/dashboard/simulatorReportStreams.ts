@@ -3,6 +3,7 @@ import {
   ESG_HIGHLIGHTS,
   type FinancialHighlight,
 } from "../annual-report/reportMockData";
+import { REPORT_CHAPTER_TAGS } from "../annual-report/reportNavigation";
 import {
   computeYoYPercent,
   latestMetricMn,
@@ -52,7 +53,7 @@ const revenueMn = latestMetricMn("revenue");
 export const SIMULATOR_REPORT_STREAMS: ReportStream[] = [
   {
     id: "financial",
-    chapter: "07 / Financial",
+    chapter: REPORT_CHAPTER_TAGS.financial,
     title: "Financial Performance",
     tag: "AUDITED HEADLINES FY 25/26",
     headline: "Integrated Financial Resilience",
@@ -70,7 +71,7 @@ export const SIMULATOR_REPORT_STREAMS: ReportStream[] = [
   },
   {
     id: "success-story",
-    chapter: "08 / Success Story",
+    chapter: REPORT_CHAPTER_TAGS.successStory,
     title: "Graphical Representation of Our Success Story",
     tag: "TEN YEAR SUMMARY 2025/26",
     headline: "Fifteen-Year Financial Trajectory",
@@ -118,7 +119,7 @@ export const SIMULATOR_REPORT_STREAMS: ReportStream[] = [
   },
   {
     id: "esg",
-    chapter: "09 / ESG",
+    chapter: REPORT_CHAPTER_TAGS.esg,
     title: "ESG Performance",
     tag: "REGENERATE FRAMEWORK ALIGNMENT",
     headline: "Balanced Value Creation",
