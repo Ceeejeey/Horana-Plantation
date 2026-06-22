@@ -17,6 +17,9 @@
     "firebase:deploy:hosting": "node scripts/deploy.mjs --only hosting",
     "firebase:deploy:functions": "node scripts/deploy.mjs --only functions",
     "firebase:deploy:firestore": "firebase deploy --only firestore:rules,firestore:indexes",
+    "firebase:deploy:storage": "firebase deploy --only storage",
+    "storage:upload": "node scripts/upload-storage-assets.mjs",
+    "storage:optimize-cube-faces": "node scripts/optimize-cube-faces.mjs",
     "firebase:test:live": "node scripts/test-deploy.mjs",
     "release:on": "node scripts/set-release.mjs on",
     "release:off": "node scripts/set-release.mjs off",
@@ -29,6 +32,7 @@
     "firebase-admin": "^13.4.0",
     "firebase-tools": "^14.4.0",
     "jest": "^29.7.0",
+    "sharp": "^0.34.5",
     "ts-jest": "^29.2.5",
     "turbo": "^2.5.4",
     "typescript": "~5.8.2"

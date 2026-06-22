@@ -134,6 +134,8 @@ export function LeadershipCard({ id, leader, variant, index }: LeadershipCardPro
             <img
               src={leader.image}
               alt={leader.name}
+              loading="lazy"
+              decoding="async"
               className="relative h-24 w-20 rounded-xl border border-white/10 object-cover object-top sm:h-28 sm:w-24"
             />
             <span

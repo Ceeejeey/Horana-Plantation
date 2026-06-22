@@ -1,10 +1,14 @@
 import { useRef } from "react";
 import { motion, useInView } from "motion/react";
-import layer1 from "../../../assets/business model/1.png";
-import layer2 from "../../../assets/business model/2.png";
-import layer3 from "../../../assets/business model/3.png";
-import layer4 from "../../../assets/business model/4.png";
-import layer5 from "../../../assets/business model/5.png";
+import { STORAGE_ASSETS } from "@/config/storageAssets";
+
+const BUSINESS_MODEL_LAYERS = [
+  STORAGE_ASSETS.businessModel.layer1,
+  STORAGE_ASSETS.businessModel.layer2,
+  STORAGE_ASSETS.businessModel.layer3,
+  STORAGE_ASSETS.businessModel.layer4,
+  STORAGE_ASSETS.businessModel.layer5,
+] as const;
 
 /**
  * Layer sizes as % of the diagram container (easy to tweak).
@@ -36,7 +40,7 @@ interface LayerConfig {
 const LAYERS: LayerConfig[] = [
   {
     id: 1,
-    src: layer1,
+    src: BUSINESS_MODEL_LAYERS[0],
     alt: "Value generation — outer activities ring",
     rotate: true,
     direction: "cw",
@@ -45,7 +49,7 @@ const LAYERS: LayerConfig[] = [
   },
   {
     id: 2,
-    src: layer2,
+    src: BUSINESS_MODEL_LAYERS[1],
     alt: "Value generation — operational practices ring",
     rotate: true,
     direction: "ccw",
@@ -54,7 +58,7 @@ const LAYERS: LayerConfig[] = [
   },
   {
     id: 3,
-    src: layer3,
+    src: BUSINESS_MODEL_LAYERS[2],
     alt: "Value generation — cultivation and manufacturing ring",
     rotate: true,
     direction: "cw",
@@ -63,7 +67,7 @@ const LAYERS: LayerConfig[] = [
   },
   {
     id: 4,
-    src: layer4,
+    src: BUSINESS_MODEL_LAYERS[3],
     alt: "Value generation — governance framework ring",
     rotate: true,
     direction: "ccw",
@@ -72,7 +76,7 @@ const LAYERS: LayerConfig[] = [
   },
   {
     id: 5,
-    src: layer5,
+    src: BUSINESS_MODEL_LAYERS[4],
     alt: "Governance — central cube",
     rotate: false,
     direction: "cw",
@@ -132,6 +136,8 @@ export function BusinessModelDiagram({
               <motion.img
                 src={layer.src}
                 alt={layer.alt}
+                loading="lazy"
+                decoding="async"
                 draggable={false}
                 className="h-full w-full select-none object-contain drop-shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
                 style={{ transformOrigin: "center center" }}

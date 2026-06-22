@@ -1,4 +1,5 @@
 node_modules/
+.tmp/
 build/
 dist/
 # Compiled Cloud Functions output (TypeScript → packages/functions/lib)

@@ -12,8 +12,10 @@ import {
 } from "../../features/cube-animation/utils/cubeRotationHelpers";
 import {
   CUBE_FACE_IMAGES,
+  CUBE_FACE_ORDER,
   type CubeFaceName,
 } from "../../features/capitals/capitalCubeFaceImages";
+import { useCubeFaceTextures } from "../../hooks/useCubeFaceTextures";
 
 /** Fixed isometric camera — front + top + right faces visible. */
 const ISO_CAMERA = { x: -28, y: 38, z: 6 };
@@ -38,45 +40,20 @@ export interface RubikCube3DProps {
 
 type FaceName = CubeFaceName;
 
-function useTexturesReady(): boolean {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    const urls = Object.values(CUBE_FACE_IMAGES).map((f) => f.src);
-
-    Promise.all(
-      urls.map(
-        (src) =>
-          new Promise<void>((resolve) => {
-            const img = new Image();
-            img.onload = () => resolve();
-            img.onerror = () => resolve();
-            img.src = src;
-          }),
-      ),
-    ).then(() => {
-      if (!cancelled) setReady(true);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return ready;
-}
+const CAPITAL_INDEX_TO_FACE: CubeFaceName[] = CUBE_FACE_ORDER;
 
 function ImageSticker({
   face,
   gridX,
   gridY,
   visible,
+  textureReady,
 }: {
   face: FaceName;
   gridX: number;
   gridY: number;
   visible: boolean;
+  textureReady: boolean;
 }) {
   const asset = CUBE_FACE_IMAGES[face];
   const posX = ((gridX + 1) / 2) * 100;
@@ -86,7 +63,7 @@ function ImageSticker({
     <div
       className="relative h-full w-full overflow-hidden rounded-[5px]"
       style={{
-        backgroundImage: visible ? `url(${asset.src})` : undefined,
+        backgroundImage: visible && textureReady ? `url(${asset.src})` : undefined,
         backgroundSize: "300% 300%",
         backgroundPosition: `${posX}% ${posY}%`,
         backgroundRepeat: "no-repeat",
@@ -181,7 +158,7 @@ const PhotoCubeBlock = React.memo(function PhotoCubeBlock({
   scrollProgress,
   capitalPose,
   layerTwist,
-  texturesReady,
+  isFaceLoaded,
 }: {
   cx: number;
   cy: number;
@@ -193,7 +170,7 @@ const PhotoCubeBlock = React.memo(function PhotoCubeBlock({
   scrollProgress: number;
   capitalPose?: boolean;
   layerTwist?: Partial<CubeLayerTwist>;
-  texturesReady: boolean;
+  isFaceLoaded: (face: FaceName) => boolean;
 }) {
   const halfSize = cubieSize / 2;
   const transformStyle = capitalPose
@@ -242,42 +219,78 @@ const PhotoCubeBlock = React.memo(function PhotoCubeBlock({
     >
       <div style={{ ...faceBaseStyle, transform: `translateZ(${halfSize}px)` }}>
         {hasFront ? (
-          <ImageSticker face="front" gridX={cx} gridY={cy} visible={texturesReady} />
+          <ImageSticker
+            face="front"
+            gridX={cx}
+            gridY={cy}
+            visible={hasFront}
+            textureReady={isFaceLoaded("front")}
+          />
         ) : (
           plastic
         )}
       </div>
       <div style={{ ...faceBaseStyle, transform: `translateZ(${-halfSize}px) rotateY(180deg)` }}>
         {hasBack ? (
-          <ImageSticker face="back" gridX={cx} gridY={cy} visible={texturesReady} />
+          <ImageSticker
+            face="back"
+            gridX={cx}
+            gridY={cy}
+            visible={hasBack}
+            textureReady={isFaceLoaded("back")}
+          />
         ) : (
           plastic
         )}
       </div>
       <div style={{ ...faceBaseStyle, transform: `translateX(${-halfSize}px) rotateY(-90deg)` }}>
         {hasLeft ? (
-          <ImageSticker face="left" gridX={cz} gridY={cy} visible={texturesReady} />
+          <ImageSticker
+            face="left"
+            gridX={cz}
+            gridY={cy}
+            visible={hasLeft}
+            textureReady={isFaceLoaded("left")}
+          />
         ) : (
           plastic
         )}
       </div>
       <div style={{ ...faceBaseStyle, transform: `translateX(${halfSize}px) rotateY(90deg)` }}>
         {hasRight ? (
-          <ImageSticker face="right" gridX={cz} gridY={cy} visible={texturesReady} />
+          <ImageSticker
+            face="right"
+            gridX={cz}
+            gridY={cy}
+            visible={hasRight}
+            textureReady={isFaceLoaded("right")}
+          />
         ) : (
           plastic
         )}
       </div>
       <div style={{ ...faceBaseStyle, transform: `translateY(${-halfSize}px) rotateX(90deg)` }}>
         {hasTop ? (
-          <ImageSticker face="top" gridX={cx} gridY={cz} visible={texturesReady} />
+          <ImageSticker
+            face="top"
+            gridX={cx}
+            gridY={cz}
+            visible={hasTop}
+            textureReady={isFaceLoaded("top")}
+          />
         ) : (
           plastic
         )}
       </div>
       <div style={{ ...faceBaseStyle, transform: `translateY(${halfSize}px) rotateX(-90deg)` }}>
         {hasBottom ? (
-          <ImageSticker face="bottom" gridX={cx} gridY={cz} visible={texturesReady} />
+          <ImageSticker
+            face="bottom"
+            gridX={cx}
+            gridY={cz}
+            visible={hasBottom}
+            textureReady={isFaceLoaded("bottom")}
+          />
         ) : (
           plastic
         )}
@@ -309,7 +322,16 @@ export function RubikCube3D({
 
   const cubieSize = useCubieSize(sizeMultiplier);
   const gap = 3;
-  const texturesReady = useTexturesReady();
+
+  const priorityFaces = useMemo((): CubeFaceName[] => {
+    if (isCapital) {
+      const primary = CAPITAL_INDEX_TO_FACE[Math.min(6, Math.max(1, capitalIndex)) - 1];
+      return [primary, "front", "right", "top"];
+    }
+    return ["front", "right", "top"];
+  }, [isCapital, capitalIndex]);
+
+  const { isFaceLoaded } = useCubeFaceTextures(priorityFaces);
   const spinY = useContinuousSpin(isInteractive, 22);
 
   const solveProgress = externalSolveProgress ?? (isSolved || isInteractive ? 1 : 0);
@@ -437,7 +459,7 @@ export function RubikCube3D({
                 scrollProgress={scrollProgress}
                 capitalPose={isCapital}
                 layerTwist={layerTwist}
-                texturesReady={texturesReady}
+                isFaceLoaded={isFaceLoaded}
               />
             ))}
           </div>

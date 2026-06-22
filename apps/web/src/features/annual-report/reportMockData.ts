@@ -1,8 +1,6 @@
-import chairmanPortrait from "../../assets/images/chairman_portrait_1779635619055.png";
-import mdPortrait from "../../assets/images/md_portrait_1779635639645.png";
-import annualReportPdf from "../../assets/pdf/annual-report/Horana AR 2025-26.pdf";
+import { ANNUAL_REPORT_PDF_URL, STORAGE_ASSETS } from "@/config/storageAssets";
 
-export const ANNUAL_REPORT_PDF_URL = annualReportPdf;
+export { ANNUAL_REPORT_PDF_URL };
 
 export const REPORT_META = {
   year: "2025/26",
@@ -37,7 +35,7 @@ export const CHAIRMAN_MESSAGE = {
   capitalFocus: "Integrated Financial & Natural Equilibrium",
   quote:
     "We recognise that long term value creation in plantations depends on the careful alignment of many moving parts; land, labour, capital, climate resilience, market access, community wellbeing and regulatory stability. In many ways, this reflects the logic of a Rubik's Cube, where each move affects the position and balance of the whole.",
-  image: chairmanPortrait,
+  image: STORAGE_ASSETS.images.chairmanPortrait,
   signature: "A M Pandithage",
   pdfSection: "Chairman's Message",
   audioLabel: "Chairman's Message",
@@ -50,7 +48,7 @@ export const MD_REVIEW = {
   capitalFocus: "Intellectual, Human & Manufactured Modernization",
   quote:
     "We continued to advance the integrated approach through operational improvements, sustainability led initiatives, digital systems, diversification and people focused programmes. These priorities are aligned with the Hayleys Plantations ESG Framework \"Regenerate\".",
-  image: mdPortrait,
+  image: STORAGE_ASSETS.images.mdPortrait,
   signature: "Roshan Rajadurai",
   pdfSection: "Managing Director's Review",
   audioLabel: "Managing Director's Review",

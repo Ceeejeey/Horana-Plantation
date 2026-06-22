@@ -75,33 +75,12 @@ function applyCarouselPosition(
   setActiveSection(Math.floor(clamped) + 1, clamped - Math.floor(clamped));
 }
 
-function resetCubeCanvasStyles(reason = "reset") {
+function resetCubeCanvasStyles() {
   const el = document.getElementById("cube-canvas-container");
   if (!el) return;
   gsap.killTweensOf(el);
   el.removeAttribute("aria-hidden");
   gsap.set(el, { clearProps: "all" });
-
-  // #region agent log
-  fetch("http://127.0.0.1:7807/ingest/7dd37490-65c0-4437-a25c-304992d14e64", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "dfb150" },
-    body: JSON.stringify({
-      sessionId: "dfb150",
-      runId: "cube-scroll",
-      hypothesisId: "H-sticky",
-      location: "useScrollSpy.ts:resetCubeCanvasStyles",
-      message: "cube styles reset",
-      data: {
-        reason,
-        cubeTop: Math.round(el.getBoundingClientRect().top),
-        naturalBottom: document.getElementById("natural")?.getBoundingClientRect().bottom ?? null,
-        scrollY: Math.round(window.scrollY),
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
 }
 
 function applyCubeExitLift(): number {
@@ -141,7 +120,7 @@ function applyCubeExitLift(): number {
   return t;
 }
 
-function showChapterCube(reason: string) {
+function showChapterCube() {
   const container = document.getElementById("cube-canvas-container");
   const inner = document.getElementById("cube-scroll-inner");
   if (inner) gsap.set(inner, { clearProps: "y,transform,opacity" });
@@ -149,46 +128,14 @@ function showChapterCube(reason: string) {
     container.removeAttribute("aria-hidden");
     gsap.set(container, { autoAlpha: 1, visibility: "visible", pointerEvents: "auto" });
   }
-  logCubeScrollPhase(reason);
 }
 
-function hideChapterCube(reason: string) {
+function hideChapterCube() {
   const container = document.getElementById("cube-canvas-container");
   if (container) {
     container.setAttribute("aria-hidden", "true");
     gsap.set(container, { autoAlpha: 0, pointerEvents: "none" });
   }
-  logCubeScrollPhase(reason);
-}
-
-function logCubeScrollPhase(reason: string) {
-  const el = document.getElementById("cube-canvas-container");
-  const inner = document.getElementById("cube-scroll-inner");
-  const natural = document.getElementById("natural");
-  const leadership = document.getElementById("leadership");
-  // #region agent log
-  fetch("http://127.0.0.1:7807/ingest/7dd37490-65c0-4437-a25c-304992d14e64", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "dfb150" },
-    body: JSON.stringify({
-      sessionId: "dfb150",
-      runId: "cube-scroll",
-      hypothesisId: "H-natural-exit",
-      location: "useScrollSpy.ts:logCubeScrollPhase",
-      message: reason,
-      data: {
-        cubeTop: el ? Math.round(el.getBoundingClientRect().top) : null,
-        innerY: inner ? Math.round(gsap.getProperty(inner, "y") as number) : null,
-        cubeOpacity: el ? getComputedStyle(el).opacity : null,
-        cubeVisibility: el ? getComputedStyle(el).visibility : null,
-        naturalBottom: natural ? Math.round(natural.getBoundingClientRect().bottom) : null,
-        leadershipTop: leadership ? Math.round(leadership.getBoundingClientRect().top) : null,
-        scrollY: Math.round(window.scrollY),
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
 }
 
 /** Past the last capital — hold Natural state while still inside the capitals chapter. */
@@ -216,26 +163,6 @@ function setupChapterCapitalsScroll(setActiveSection: (index: number, progress: 
 
     const position = computeCarouselPositionFromMarkers(tops);
     applyCarouselPosition(position, setActiveSection);
-
-    // #region agent log
-    fetch("http://127.0.0.1:7807/ingest/7dd37490-65c0-4437-a25c-304992d14e64", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "dfb150" },
-      body: JSON.stringify({
-        sessionId: "dfb150",
-        runId: "carousel-nav",
-        hypothesisId: "H4-sync",
-        location: "useScrollSpy.ts:syncFromMarkers",
-        message: "marker sync",
-        data: {
-          tops: tops.map((t) => Math.round(t)),
-          position,
-          sectionIndex: Math.floor(position) + 1,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
   };
 
   const introHold = ScrollTrigger.create({
@@ -249,7 +176,7 @@ function setupChapterCapitalsScroll(setActiveSection: (index: number, progress: 
   cleanups.push(() => introHold.kill());
 
   if (window.matchMedia(DESKTOP_MQ).matches) {
-    resetCubeCanvasStyles("chapter-init");
+    resetCubeCanvasStyles();
 
     let lastLiftLog = -1;
 
@@ -266,51 +193,22 @@ function setupChapterCapitalsScroll(setActiveSection: (index: number, progress: 
         const lift = applyCubeExitLift();
         if (lift > 0.04 && Math.abs(lift - lastLiftLog) > 0.07) {
           lastLiftLog = lift;
-          const inner = document.getElementById("cube-scroll-inner");
-          const leadership = document.getElementById("leadership");
-          logCubeScrollPhase(`pin lift t=${lift.toFixed(2)}`);
-          // #region agent log
-          fetch("http://127.0.0.1:7807/ingest/7dd37490-65c0-4437-a25c-304992d14e64", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "dfb150" },
-            body: JSON.stringify({
-              sessionId: "dfb150",
-              runId: "cube-scroll",
-              hypothesisId: "H-lift-inner",
-              location: "useScrollSpy.ts:pinTrigger.onUpdate",
-              message: "exit lift applied",
-              data: {
-                lift: Math.round(lift * 1000) / 1000,
-                innerY: inner ? Math.round(gsap.getProperty(inner, "y") as number) : null,
-                innerOpacity: inner ? getComputedStyle(inner).opacity : null,
-                naturalBottom: Math.round(
-                  document.getElementById("natural")?.getBoundingClientRect().bottom ?? 0,
-                ),
-                leadershipTop: leadership
-                  ? Math.round(leadership.getBoundingClientRect().top)
-                  : null,
-                scrollY: Math.round(window.scrollY),
-              },
-              timestamp: Date.now(),
-            }),
-          }).catch(() => {});
-          // #endregion
         }
       },
       onEnterBack: () => {
         lastLiftLog = -1;
-        showChapterCube("pin onEnterBack shown");
+        showChapterCube();
         requestAnimationFrame(() => ScrollTrigger.refresh());
       },
       onLeave: (self) => {
         lastLiftLog = -1;
         if (self.direction === 1) {
-          hideChapterCube("pin onLeave hidden (past natural)");
+          hideChapterCube();
         }
       },
       onLeaveBack: () => {
         lastLiftLog = -1;
-        hideChapterCube("pin onLeaveBack hidden (above capitals)");
+        hideChapterCube();
       },
     });
     cleanups.push(() => pinTrigger.kill());
@@ -318,13 +216,13 @@ function setupChapterCapitalsScroll(setActiveSection: (index: number, progress: 
     const leadershipGuard = ScrollTrigger.create({
       trigger: "#leadership",
       start: "top 90%",
-      onEnter: () => hideChapterCube("leadership entered"),
+      onEnter: () => hideChapterCube(),
       onLeaveBack: () => {
         const six = document.getElementById("six-capitals");
         if (!six) return;
         const rect = six.getBoundingClientRect();
         if (rect.bottom > NAVBAR_OFFSET && rect.top < window.innerHeight) {
-          showChapterCube("leadership onLeaveBack show");
+          showChapterCube();
           requestAnimationFrame(() => ScrollTrigger.refresh());
         }
       },

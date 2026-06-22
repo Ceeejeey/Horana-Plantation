@@ -58,31 +58,6 @@ function scrollToCapital(
   const clampedTarget = Math.min(Math.max(0, targetY), maxScroll);
   const hitScrollLimit = clampedTarget + 12 < targetY;
 
-  // #region agent log
-  fetch("http://127.0.0.1:7807/ingest/7dd37490-65c0-4437-a25c-304992d14e64", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "dfb150" },
-    body: JSON.stringify({
-      sessionId: "dfb150",
-      runId: "post-fix-v6",
-      hypothesisId: "H7-scroll",
-      location: "CapitalCubeCarousel.tsx:scrollToCapital",
-      message: "marker scroll target",
-      data: {
-        index,
-        capitalId: capital.id,
-        markerTop: Math.round(markerTop),
-        anchor: SERIES_ANCHOR_Y,
-        targetY: Math.round(targetY),
-        clampedTarget: Math.round(clampedTarget),
-        maxScroll: Math.round(maxScroll),
-        hitScrollLimit,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-
   window.scrollTo({ top: clampedTarget, behavior: "smooth" });
 
   const started = Date.now();
@@ -108,31 +83,6 @@ function scrollToCapital(
       if (limitSettled || (markerSettled && Math.abs(livePosition - index) < 0.06)) {
         setActiveSection(capital.index, 0);
       }
-
-      // #region agent log
-      fetch("http://127.0.0.1:7807/ingest/7dd37490-65c0-4437-a25c-304992d14e64", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "dfb150" },
-        body: JSON.stringify({
-          sessionId: "dfb150",
-          runId: "post-fix-v6",
-          hypothesisId: "H7-scroll",
-          location: "CapitalCubeCarousel.tsx:scrollToCapital:settle",
-          message: "scroll settled",
-          data: {
-            index,
-            capitalId: capital.id,
-            livePosition,
-            markerTop: Math.round(top),
-            sectionTop: Math.round(sectionTop),
-            markerSettled,
-            limitSettled,
-            scrollY: Math.round(window.scrollY),
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
 
       unlockCarouselScrollSync();
       ScrollTrigger.update();
@@ -263,29 +213,9 @@ export function CapitalCubeCarousel({
 
       lockCarouselScrollSync(4500);
 
-      // #region agent log
-      fetch("http://127.0.0.1:7807/ingest/7dd37490-65c0-4437-a25c-304992d14e64", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "dfb150" },
-        body: JSON.stringify({
-          sessionId: "dfb150",
-          runId: "post-fix-v6",
-          hypothesisId: "H8-optimistic",
-          location: "CapitalCubeCarousel.tsx:navigateToCapital",
-          message: "nav click",
-          data: {
-            targetIndex: index,
-            capitalId: capital.id,
-            prevFocusIdx: focusIdx,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
-
       scrollToCapital(index, setActiveSection);
     },
-    [setActiveSection, focusIdx],
+    [setActiveSection],
   );
 
   const handlePrev = useCallback(() => {
@@ -309,33 +239,6 @@ export function CapitalCubeCarousel({
     }
     setDragOffset(0);
   }, [dragOffset, handlePrev, handleNext]);
-
-  useEffect(() => {
-    // #region agent log
-    fetch("http://127.0.0.1:7807/ingest/7dd37490-65c0-4437-a25c-304992d14e64", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "dfb150" },
-      body: JSON.stringify({
-        sessionId: "dfb150",
-        runId: "post-fix-v5",
-        hypothesisId: "H6-cramped",
-        location: "CapitalCubeCarousel.tsx:state",
-        message: "carousel state",
-        data: {
-          activeSectionIndex,
-          scrollProgress,
-          position,
-          focusIdx,
-          focusCapital: CAPITALS_DATA[focusIdx]?.id,
-          leftColumnMatch: focusIdx === activeSectionIndex - 1,
-          horizontalSpread: Math.round(getHorizontalSpread(position)),
-          neighborCount: CAPITALS_DATA.filter((_, i) => Math.abs(i - position) <= 1.15).length,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-  }, [activeSectionIndex, scrollProgress, position, focusIdx]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("button")) return;

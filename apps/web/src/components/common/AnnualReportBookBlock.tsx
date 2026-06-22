@@ -3,7 +3,7 @@ import type { PointerEvent } from "react";
 import { Download, FileText } from "lucide-react";
 import { BookCover3D } from "./BookCover3D";
 import { PDFViewerModal } from "./PDFViewerModal";
-import annualReportPdf from "../../assets/pdf/annual-report/Horana AR 2025-26.pdf";
+import { ANNUAL_REPORT_PDF_URL } from "@/config/storageAssets";
 
 interface AnnualReportBookBlockProps {
   className?: string;
@@ -38,7 +38,7 @@ export function AnnualReportBookBlock({
 
   const handleDownload = () => {
     const link = document.createElement("a");
-    link.href = annualReportPdf;
+    link.href = ANNUAL_REPORT_PDF_URL;
     link.download = "Horana_AR_2025-26.pdf";
     document.body.appendChild(link);
     link.click();
@@ -93,7 +93,7 @@ export function AnnualReportBookBlock({
       <PDFViewerModal
         isOpen={isViewerOpen}
         onClose={() => setIsViewerOpen(false)}
-        pdfUrl={annualReportPdf}
+        pdfUrl={ANNUAL_REPORT_PDF_URL}
         title="Horana Plantations — Annual Report 2025/26"
       />
 

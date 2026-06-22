@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import coverImage from "../../assets/cover_page/HORANA Cover Story Image and MockUp_page-0001.jpg";
-import annualReportPdf from "../../assets/pdf/annual-report/Horana AR 2025-26.pdf";
+import { ANNUAL_REPORT_PDF_URL, STORAGE_ASSETS } from "@/config/storageAssets";
 import { PDFViewerModal } from "./PDFViewerModal";
 
 const SPINE_WIDTH = 48; // Total thickness of the book
@@ -33,7 +32,7 @@ export function BookCover3D({ parallax }: { parallax: { x: number; y: number } }
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
     const link = document.createElement("a");
-    link.href = annualReportPdf;
+    link.href = ANNUAL_REPORT_PDF_URL;
     link.download = "Horana_AR_2025-26.pdf";
     document.body.appendChild(link);
     link.click();
@@ -202,7 +201,7 @@ export function BookCover3D({ parallax }: { parallax: { x: number; y: number } }
                 <div
                   className="book-front-face"
                   style={{
-                    backgroundImage: `url(${coverImage})`,
+                    backgroundImage: `url(${STORAGE_ASSETS.coverPage.thumb})`,
                   }}
                 >
                   <div className="book-front-sheen" style={{ transform: sheenTransform }} />
@@ -233,7 +232,7 @@ export function BookCover3D({ parallax }: { parallax: { x: number; y: number } }
       <PDFViewerModal 
         isOpen={isViewerOpen} 
         onClose={() => setIsViewerOpen(false)} 
-        pdfUrl={annualReportPdf}
+        pdfUrl={ANNUAL_REPORT_PDF_URL}
       />
     </>
   );

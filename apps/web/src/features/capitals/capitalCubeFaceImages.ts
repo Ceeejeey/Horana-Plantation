@@ -1,14 +1,11 @@
 /**
- * One source image per Rubik-cube face (6 capitals).
- * Each face is torn into a 3×3 grid in CSS — no per-cell image files.
+ * Rubik-cube face textures — optimized WebP on Firebase Storage.
+ * Each face is split into a 3×3 CSS grid (see RubikCube3D).
  *
- * Paths point at the original Capital pages folder (sibling of this repo):
- *   ../Capital pages/
- *
- * Vite resolves these via the `@capital-pages` alias (see vite.config.ts).
- * Run `scripts/build-capital-cube-faces.sh` only if you need pre-built montage
- * webps for deploy; sources are never copied into this repositoryhhy.
+ * Regenerate uploads: npm run storage:optimize-cube-faces
  */
+
+import { STORAGE_ASSETS } from "@/config/storageAssets";
 
 export type CubeFaceName =
   | "front"
@@ -19,12 +16,10 @@ export type CubeFaceName =
   | "bottom";
 
 export interface CubeFaceImageConfig {
-  /** Vite-resolved URL to the single face texture */
   src: string;
   label: string;
 }
 
-/** Rubik face → capital (Financial front, Manufactured right, …). */
 export const CUBE_FACE_ORDER: CubeFaceName[] = [
   "front",
   "right",
@@ -33,19 +28,6 @@ export const CUBE_FACE_ORDER: CubeFaceName[] = [
   "bottom",
   "back",
 ];
-
-/**
- * Relative paths inside `Capital pages/` — one hero image per visible side.
- * Swap any path here; the cube splits it into nine stickers automatically.
- */
-export const CAPITAL_PAGE_FACE_PATHS: Record<CubeFaceName, string> = {
-  front: "Financial Capital/DSC_0854 copy.jpg",
-  right: "Manufactured Capital/DJI_0398.jpg",
-  top: "Intellectual capital/Copy of 7R501750.jpg",
-  left: "Human Capital/C P 16.jpg",
-  bottom: "Social and Relationship/7R503738-Edit.jpg",
-  back: "Natural Capital/forest.jpg",
-};
 
 export const CAPITAL_PAGE_FACE_LABELS: Record<CubeFaceName, string> = {
   front: "Financial capital",
@@ -56,19 +38,29 @@ export const CAPITAL_PAGE_FACE_LABELS: Record<CubeFaceName, string> = {
   back: "Natural capital",
 };
 
-/** Eager imports — Vite bundles/serves from @capital-pages alias (not committed). */
-import faceFront from "@capital-pages/Financial Capital/DSC_0854 copy.jpg?url";
-import faceRight from "@capital-pages/Manufactured Capital/DJI_0398.jpg?url";
-import faceTop from "@capital-pages/Intellectual capital/Copy of 7R501750.jpg?url";
-import faceLeft from "@capital-pages/Human Capital/C P 16.jpg?url";
-import faceBottom from "@capital-pages/Social and Relationship/7R503738-Edit.jpg?url";
-import faceBack from "@capital-pages/Natural Capital/forest.jpg?url";
-
 export const CUBE_FACE_IMAGES: Record<CubeFaceName, CubeFaceImageConfig> = {
-  front: { src: faceFront, label: CAPITAL_PAGE_FACE_LABELS.front },
-  right: { src: faceRight, label: CAPITAL_PAGE_FACE_LABELS.right },
-  top: { src: faceTop, label: CAPITAL_PAGE_FACE_LABELS.top },
-  left: { src: faceLeft, label: CAPITAL_PAGE_FACE_LABELS.left },
-  bottom: { src: faceBottom, label: CAPITAL_PAGE_FACE_LABELS.bottom },
-  back: { src: faceBack, label: CAPITAL_PAGE_FACE_LABELS.back },
+  front: {
+    src: STORAGE_ASSETS.cubeFaces.front,
+    label: CAPITAL_PAGE_FACE_LABELS.front,
+  },
+  right: {
+    src: STORAGE_ASSETS.cubeFaces.right,
+    label: CAPITAL_PAGE_FACE_LABELS.right,
+  },
+  top: {
+    src: STORAGE_ASSETS.cubeFaces.top,
+    label: CAPITAL_PAGE_FACE_LABELS.top,
+  },
+  left: {
+    src: STORAGE_ASSETS.cubeFaces.left,
+    label: CAPITAL_PAGE_FACE_LABELS.left,
+  },
+  bottom: {
+    src: STORAGE_ASSETS.cubeFaces.bottom,
+    label: CAPITAL_PAGE_FACE_LABELS.bottom,
+  },
+  back: {
+    src: STORAGE_ASSETS.cubeFaces.back,
+    label: CAPITAL_PAGE_FACE_LABELS.back,
+  },
 };

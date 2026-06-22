@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { STORAGE_ASSETS } from "@/config/storageAssets";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Quote, Sparkles, ShieldCheck, Award, Layers, HelpCircle, ArrowUpRight } from "lucide-react";
@@ -21,7 +22,7 @@ const LEADERS: Leader[] = [
     role: "Chairman — Executive Director",
     credentials: "Horana Plantations PLC",
     quote: "We recognise that long term value creation in plantations depends on the careful alignment of many moving parts; land, labour, capital, climate resilience, market access, community wellbeing and regulatory stability. In many ways, this reflects the logic of a Rubik's Cube, where each move affects the position and balance of the whole.",
-    image: "/src/assets/images/chairman_portrait_1779635619055.png",
+    image: STORAGE_ASSETS.images.chairmanPortrait,
     signature: "A M Pandithage",
     capitalFocus: "Focus: Integrated Financial & Natural Equilibrium"
   },
@@ -30,7 +31,7 @@ const LEADERS: Leader[] = [
     role: "Managing Director",
     credentials: "Horana Plantations PLC",
     quote: "We continued to advance the integrated approach through operational improvements, sustainability led initiatives, digital systems, diversification and people focused programmes. These priorities are aligned with the Hayleys Plantations ESG Framework \"Regenerate\".",
-    image: "/src/assets/images/md_portrait_1779635639645.png",
+    image: STORAGE_ASSETS.images.mdPortrait,
     signature: "Roshan Rajadurai",
     capitalFocus: "Focus: Intellectual, Human & Manufactured Modernization"
   }
@@ -206,6 +207,8 @@ export function LeadershipInsights() {
                     <img
                       src={LEADERS[0].image}
                       alt={LEADERS[0].name}
+                      loading="lazy"
+                      decoding="async"
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover grayscale brightness-95 contrast-105 hover:grayscale-0 transition-all duration-700 hover:scale-105"
                     />
@@ -271,6 +274,8 @@ export function LeadershipInsights() {
                     <img
                       src={LEADERS[1].image}
                       alt={LEADERS[1].name}
+                      loading="lazy"
+                      decoding="async"
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover grayscale brightness-95 contrast-105 hover:grayscale-0 transition-all duration-700 hover:scale-105"
                     />

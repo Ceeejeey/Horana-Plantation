@@ -11,11 +11,11 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "dev": "tsc -p tsconfig.json --watch",
+    "build": "tsc -b tsconfig.json --force",
+    "dev": "tsc -b tsconfig.json --watch --preserveWatchOutput",
     "lint": "tsc --noEmit -p tsconfig.json",
     "test": "jest --passWithNoTests",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "devDependencies": {
     "jest": "^29.7.0",

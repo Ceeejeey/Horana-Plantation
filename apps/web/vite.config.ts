@@ -1,12 +1,28 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { defineConfig, loadEnv } from "vite";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-/** Original Capital pages folder — sibling of Horana_plantation repo (not in git). */
-const capitalPagesDir = path.resolve(__dirname, "../../../Capital pages");
+
+function resolveCapitalPagesDir(): string {
+  const candidates = [
+    process.env.CAPITAL_PAGES,
+    path.resolve(__dirname, "../../../Capital pages"),
+    path.resolve(__dirname, "src/assets/capitals-cube"),
+  ].filter((dir): dir is string => Boolean(dir));
+
+  for (const dir of candidates) {
+    if (fs.existsSync(dir)) return dir;
+  }
+
+  return candidates[0] ?? path.resolve(__dirname, "../../../Capital pages");
+}
+
+/** Original Capital pages folder — sibling of repo, CAPITAL_PAGES env, or bundled assets. */
+const capitalPagesDir = resolveCapitalPagesDir();
 
 const functionsEmulatorOrigin =
   process.env.VITE_FUNCTIONS_EMULATOR_ORIGIN ?? "http://127.0.0.1:5001";

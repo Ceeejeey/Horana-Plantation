@@ -11,7 +11,7 @@
     "dev": "npm run build -- --watch",
     "lint": "tsc --noEmit -p tsconfig.json",
     "test": "jest --passWithNoTests",
-    "clean": "rm -rf lib",
+    "clean": "rm -rf lib tsconfig.tsbuildinfo",
     "serve": "npm run build && firebase emulators:start --only functions,firestore"
   },
   "dependencies": {
