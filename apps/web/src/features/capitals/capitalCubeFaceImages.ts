@@ -1,11 +1,16 @@
 /**
- * Rubik-cube face textures — optimized WebP on Firebase Storage.
- * Each face is split into a 3×3 CSS grid (see RubikCube3D).
+ * Rubik-cube face textures for loading screen & hero cube (RubikCube3D).
+ * Each face is a 1200×1200 image split into a 3×3 CSS grid (see RubikCube3D).
  *
- * Regenerate uploads: npm run storage:optimize-cube-faces
+ * Source: `apps/web/src/assets/load_cube/capital1.png` … `capital6.png`
  */
 
-import { STORAGE_ASSETS } from "@/config/storageAssets";
+import capital1 from "@/assets/load_cube/capital1.png";
+import capital2 from "@/assets/load_cube/capital2.png";
+import capital3 from "@/assets/load_cube/capital3.png";
+import capital4 from "@/assets/load_cube/capital4.png";
+import capital5 from "@/assets/load_cube/capital5.png";
+import capital6 from "@/assets/load_cube/capital6.png";
 
 export type CubeFaceName =
   | "front"
@@ -40,27 +45,27 @@ export const CAPITAL_PAGE_FACE_LABELS: Record<CubeFaceName, string> = {
 
 export const CUBE_FACE_IMAGES: Record<CubeFaceName, CubeFaceImageConfig> = {
   front: {
-    src: STORAGE_ASSETS.cubeFaces.front,
+    src: capital1,
     label: CAPITAL_PAGE_FACE_LABELS.front,
   },
   right: {
-    src: STORAGE_ASSETS.cubeFaces.right,
+    src: capital2,
     label: CAPITAL_PAGE_FACE_LABELS.right,
   },
   top: {
-    src: STORAGE_ASSETS.cubeFaces.top,
+    src: capital3,
     label: CAPITAL_PAGE_FACE_LABELS.top,
   },
   left: {
-    src: STORAGE_ASSETS.cubeFaces.left,
+    src: capital4,
     label: CAPITAL_PAGE_FACE_LABELS.left,
   },
   bottom: {
-    src: STORAGE_ASSETS.cubeFaces.bottom,
+    src: capital5,
     label: CAPITAL_PAGE_FACE_LABELS.bottom,
   },
   back: {
-    src: STORAGE_ASSETS.cubeFaces.back,
+    src: capital6,
     label: CAPITAL_PAGE_FACE_LABELS.back,
   },
 };

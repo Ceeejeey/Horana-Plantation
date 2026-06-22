@@ -487,14 +487,12 @@ export interface CubeAssemblyOffset {
   z: number;
 }
 
-/** Per-capital face camera — Financial front, Manufactured right, Intellectual top, etc. */
+/** Per-capital face camera — shared carousel base + optional offset from capitalCubeTwists. */
 export function getCapitalAssemblyRotation(
-  capitalIndex: number,
   parallax: { x: number; y: number } = { x: 0, y: 0 },
   offset: Partial<CubeAssemblyOffset> = {},
+  base: CubeAssemblyOffset = { x: -28, y: 38, z: 6 },
 ): { x: number; y: number; z: number } {
-  const clamped = Math.min(6, Math.max(1, capitalIndex));
-  const base = getCubeAssemblyRotation(clamped, 0);
   return {
     x: base.x + (offset.x ?? 0) - parallax.y * 5,
     y: base.y + (offset.y ?? 0) + parallax.x * 8,

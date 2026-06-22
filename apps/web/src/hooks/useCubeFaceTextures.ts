@@ -5,26 +5,49 @@ import {
   type CubeFaceName,
 } from "@/features/capitals/capitalCubeFaceImages";
 
+function getFaceSrc(
+  face: CubeFaceName,
+  faceOverrides?: Partial<Record<CubeFaceName, string>>,
+): string | undefined {
+  return faceOverrides?.[face] ?? CUBE_FACE_IMAGES[face]?.src;
+}
+
 /** Preload cube textures — priority faces first, then the rest in parallel. */
-export function useCubeFaceTextures(priorityFaces: CubeFaceName[] = []) {
+export function useCubeFaceTextures(
+  priorityFaces: CubeFaceName[] = [],
+  faceOverrides?: Partial<Record<CubeFaceName, string>>,
+) {
   const [loaded, setLoaded] = useState<Set<CubeFaceName>>(() => new Set());
 
   const loadOrder = useMemo(() => {
+    if (faceOverrides && Object.keys(faceOverrides).length > 0) {
+      const overrideFaces = Object.keys(faceOverrides) as CubeFaceName[];
+      const priority = priorityFaces.filter((face) => faceOverrides[face]);
+      const rest = overrideFaces.filter((face) => !priority.includes(face));
+      return [...priority, ...rest];
+    }
+
     const priority = priorityFaces.filter((face) => face in CUBE_FACE_IMAGES);
     const rest = CUBE_FACE_ORDER.filter((face) => !priority.includes(face));
     return [...priority, ...rest];
-  }, [priorityFaces]);
+  }, [priorityFaces, faceOverrides]);
 
   useEffect(() => {
     let cancelled = false;
 
     const preloadOne = (face: CubeFaceName) =>
       new Promise<void>((resolve) => {
+        const src = getFaceSrc(face, faceOverrides);
+        if (!src) {
+          resolve();
+          return;
+        }
+
         const img = new Image();
         img.decoding = "async";
         img.onload = () => resolve();
         img.onerror = () => resolve();
-        img.src = CUBE_FACE_IMAGES[face].src;
+        img.src = src;
       });
 
     const run = async () => {
@@ -51,9 +74,9 @@ export function useCubeFaceTextures(priorityFaces: CubeFaceName[] = []) {
     return () => {
       cancelled = true;
     };
-  }, [loadOrder]);
+  }, [loadOrder, faceOverrides]);
 
-  const allReady = loaded.size === CUBE_FACE_ORDER.length;
+  const allReady = loaded.size === loadOrder.length;
 
   return {
     loaded,

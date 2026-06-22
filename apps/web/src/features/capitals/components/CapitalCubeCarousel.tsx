@@ -1,18 +1,18 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { CAPITALS_DATA } from "../capitalsData";
-import { getCapitalCubeTwist, getCapitalCubeAssembly } from "../capitalCubeTwists";
-import { RubikCube3D } from "../../../components/common/RubikCube3D";
-import { useActiveSection } from "../../../context/ActiveSectionContext";
 import {
-  SERIES_ANCHOR_Y,
-  computeCarouselPositionFromMarkers,
-} from "../../../hooks/useScrollSpy";
+  getCapitalCubeTwist,
+  getCapitalCubeAssembly,
+  getCapitalCarouselCubeFaces,
+} from "../capitalCubeTwists";
+import { RubikCube3D } from "../../../components/common/RubikCube3D";
+import { useLiveCarouselPosition } from "../../../hooks/useLiveCarouselPosition";
 import {
   lockCarouselScrollSync,
   unlockCarouselScrollSync,
 } from "../carouselSyncLock";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { scrollToCapitalMarker } from "../carouselScrollSync";
 
 interface CapitalCubeCarouselProps {
   activeSectionIndex: number;
@@ -21,126 +21,94 @@ interface CapitalCubeCarouselProps {
   className?: string;
 }
 
-function getSeriesMarkerTops(): number[] | null {
-  const tops = CAPITALS_DATA.map((c) => {
-    const el = document.getElementById(`${c.id}-series-marker`);
-    return el ? el.getBoundingClientRect().top : null;
-  });
-  return tops.some((t) => t === null) ? null : (tops as number[]);
+function getCarouselMetrics() {
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1280;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+  const spread = Math.round(Math.min(240, Math.max(160, vw * 0.17)));
+  const sceneH = Math.round(Math.min(500, Math.max(320, vh * 0.56)));
+  const maxSceneW = Math.round(Math.min(920, Math.max(640, vw * 0.62)));
+
+  return { spread, sceneH, maxSceneW };
 }
 
-function applyCarouselPosition(
-  position: number,
-  setActiveSection: (index: number, progress: number) => void,
-) {
-  const clamped = Math.max(0, Math.min(CAPITALS_DATA.length - 1, position));
-  setActiveSection(Math.floor(clamped) + 1, clamped - Math.floor(clamped));
-}
-
-function scrollToCapital(
-  index: number,
-  setActiveSection: (index: number, progress: number) => void,
-) {
-  const capital = CAPITALS_DATA[index];
-  if (!capital) return;
-
-  const marker = document.getElementById(`${capital.id}-series-marker`);
-  const section = document.getElementById(capital.id);
-
-  if (!marker || !section) {
-    section?.scrollIntoView({ behavior: "smooth", block: "start" });
-    return;
-  }
-
-  const markerTop = marker.getBoundingClientRect().top;
-  const targetY = window.scrollY + markerTop - SERIES_ANCHOR_Y;
-  const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-  const clampedTarget = Math.min(Math.max(0, targetY), maxScroll);
-  const hitScrollLimit = clampedTarget + 12 < targetY;
-
-  window.scrollTo({ top: clampedTarget, behavior: "smooth" });
-
-  const started = Date.now();
-  const settle = () => {
-    const tops = getSeriesMarkerTops();
-    const livePosition = tops ? computeCarouselPositionFromMarkers(tops) : -1;
-    const markerEl = document.getElementById(`${capital.id}-series-marker`);
-    const top = markerEl?.getBoundingClientRect().top ?? 9999;
-    const sectionTop = section.getBoundingClientRect().top;
-
-    if (tops) {
-      applyCarouselPosition(computeCarouselPositionFromMarkers(tops), setActiveSection);
-    }
-
-    const markerSettled =
-      Math.abs(livePosition - index) < 0.06 || Math.abs(top - SERIES_ANCHOR_Y) < 16;
-    const limitSettled =
-      hitScrollLimit &&
-      index === CAPITALS_DATA.length - 1 &&
-      sectionTop <= SERIES_ANCHOR_Y + 32;
-
-    if (markerSettled || limitSettled || Date.now() - started > 4500) {
-      if (limitSettled || (markerSettled && Math.abs(livePosition - index) < 0.06)) {
-        setActiveSection(capital.index, 0);
-      }
-
-      unlockCarouselScrollSync();
-      ScrollTrigger.update();
-      return;
-    }
-    requestAnimationFrame(settle);
-  };
-  requestAnimationFrame(settle);
-}
-
-function getHorizontalSpread(position: number): number {
-  // Extra breathing room for Social ↔ Natural — last segment has no trailing neighbor cube
+function getHorizontalSpread(position: number, baseSpread: number): number {
   if (position >= 3.75) {
     const t = Math.min(1, (position - 3.75) / 1.25);
-    return 220 + t * 55;
+    return baseSpread + t * (baseSpread * 0.24);
   }
-  return 220;
+  return baseSpread;
+}
+
+function smoothstep(t: number): number {
+  const clamped = Math.max(0, Math.min(1, t));
+  return clamped * clamped * (3 - 2 * clamped);
+}
+
+function clampParallax(value: number): number {
+  return Math.max(-1, Math.min(1, value));
 }
 
 function getCarouselItemStyle(
   index: number,
   position: number,
   dragOffset: number,
+  isNavigating: boolean,
   isDragging: boolean,
-  isScrubbing: boolean,
+  baseSpread: number,
 ) {
   const offset = index - position;
-  const isCenter = Math.abs(offset) < 0.5;
-  const spread = getHorizontalSpread(position);
-  const rotationY = offset * 25;
-  const translateZ = isCenter ? 30 : -100;
-  const translateX = offset * spread + dragOffset * 0.4;
-  let opacity = isCenter ? 1 : Math.max(0.28, 0.75 - Math.abs(offset) * 0.32);
-  let scale = isCenter ? 1.0 : position >= 4 ? 0.78 : 0.82;
+  const absOffset = Math.abs(offset);
 
-  if (Math.abs(offset) > 1.8) {
-    opacity = 0;
-    scale = 0.5;
+  // Only render the active cube + immediate neighbours (smooth edge fade beyond ±1).
+  const neighborFade =
+    absOffset <= 1.05 ? 1 : smoothstep(1 - (absOffset - 1.05) / 0.52);
+  if (neighborFade < 0.015) {
+    return {
+      offset,
+      focusT: 0,
+      isCenter: false,
+      visible: false,
+      transform: "",
+      opacity: 0,
+      dim: 0,
+      zIndex: 0,
+      transition: "none",
+      pointerEvents: "none" as const,
+    };
   }
 
-  const inView = Math.abs(offset) <= 1.15;
+  const focusT = smoothstep(1 - absOffset / 0.68);
+  const isCenter = focusT > 0.82;
+
+  const spread = getHorizontalSpread(position, baseSpread);
+  const translateZ = -95 + focusT * 125;
+  const translateX = offset * spread + dragOffset * 0.4;
+  const rotateY = offset * -9;
+  const scale = 0.68 + focusT * 0.32;
+  const sideLevel = 0.36;
+  const opacity = neighborFade * (sideLevel + focusT * (1 - sideLevel));
+  const dim = (1 - focusT) * 0.22;
+
+  const useTransition = isNavigating && !isDragging;
 
   return {
     offset,
+    focusT,
     isCenter,
-    inView,
-    transform: `translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotationY}deg) scale(${scale})`,
+    visible: true,
+    transform: `translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
     opacity,
-    zIndex: isCenter ? 50 : 30 - Math.abs(offset),
-    transition:
-      isDragging || isScrubbing
-        ? "none"
-        : "transform 0.55s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.55s cubic-bezier(0.25, 1, 0.5, 1)",
+    dim,
+    zIndex: Math.round(10 + focusT * 40),
+    transition: useTransition
+      ? "transform 0.65s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1)"
+      : "opacity 0.28s ease-out",
+    pointerEvents: focusT > 0.45 ? ("auto" as const) : ("none" as const),
   };
 }
 
 /**
- * 3D perspective carousel — vertical scroll scrubs position; drag/arrows scroll to capital sections.
+ * Horizontal 3D Rubik cube carousel — scroll position drives carousel 1:1 via live marker read.
  */
 export function CapitalCubeCarousel({
   activeSectionIndex,
@@ -148,74 +116,96 @@ export function CapitalCubeCarousel({
   sizeMultiplier = 1.42,
   className = "",
 }: CapitalCubeCarouselProps) {
-  const { setActiveSection } = useActiveSection();
+  const [isNavigating, setIsNavigating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef(0);
   const isDraggingRef = useRef(false);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-
-  // Smooth mouse-driven parallax tilt for the focused cube.
-  const [parallax, setParallax] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
-  const parallaxTarget = useRef({ x: 0, y: 0 });
-  const parallaxCurrent = useRef({ x: 0, y: 0 });
-  const parallaxRaf = useRef<number | null>(null);
+  const [metrics, setMetrics] = useState(getCarouselMetrics);
+  const [parallax, setParallax] = useState({ x: 0, y: 0 });
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const parallaxTargetRef = useRef({ x: 0, y: 0 });
+  const parallaxCurrentRef = useRef({ x: 0, y: 0 });
 
-  const stepParallax = useCallback(() => {
-    const cur = parallaxCurrent.current;
-    const tgt = parallaxTarget.current;
-    const nx = cur.x + (tgt.x - cur.x) * 0.12;
-    const ny = cur.y + (tgt.y - cur.y) * 0.12;
-    parallaxCurrent.current = { x: nx, y: ny };
-
-    if (Math.abs(tgt.x - nx) > 0.0015 || Math.abs(tgt.y - ny) > 0.0015) {
-      setParallax({ x: nx, y: ny });
-      parallaxRaf.current = requestAnimationFrame(stepParallax);
-    } else {
-      parallaxCurrent.current = { x: tgt.x, y: tgt.y };
-      setParallax({ x: tgt.x, y: tgt.y });
-      parallaxRaf.current = null;
-    }
+  useEffect(() => {
+    const onResize = () => setMetrics(getCarouselMetrics());
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const ensureParallaxLoop = useCallback(() => {
-    if (parallaxRaf.current == null) {
-      parallaxRaf.current = requestAnimationFrame(stepParallax);
-    }
-  }, [stepParallax]);
+  useEffect(() => {
+    let frame = 0;
 
-  useEffect(
-    () => () => {
-      if (parallaxRaf.current != null) cancelAnimationFrame(parallaxRaf.current);
-    },
-    [],
-  );
+    const tick = () => {
+      const target = parallaxTargetRef.current;
+      const current = parallaxCurrentRef.current;
+      const ease = 0.1;
 
-  const position = useMemo(() => {
+      current.x += (target.x - current.x) * ease;
+      current.y += (target.y - current.y) * ease;
+
+      if (
+        Math.abs(current.x - target.x) > 0.001 ||
+        Math.abs(current.y - target.y) > 0.001
+      ) {
+        setParallax({ x: current.x, y: current.y });
+      }
+
+      frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  const contextPosition = useMemo(() => {
     const raw = activeSectionIndex - 1 + scrollProgress;
     return Math.max(0, Math.min(CAPITALS_DATA.length - 1, raw));
   }, [activeSectionIndex, scrollProgress]);
 
-  // Locked capital index — must match left column (capital.index === activeSectionIndex).
-  const focusIdx = useMemo(() => {
-    if (activeSectionIndex < 1) return 0;
-    if (activeSectionIndex > CAPITALS_DATA.length) return CAPITALS_DATA.length - 1;
-    return activeSectionIndex - 1;
-  }, [activeSectionIndex]);
+  const position = useLiveCarouselPosition(contextPosition);
 
-  const isScrubbing = scrollProgress > 0.04 && scrollProgress < 0.96;
+  const focusIdx = useMemo(
+    () => Math.max(0, Math.min(CAPITALS_DATA.length - 1, Math.round(position))),
+    [position],
+  );
+
+  const clearNavTimer = useCallback(() => {
+    if (navTimerRef.current) {
+      clearTimeout(navTimerRef.current);
+      navTimerRef.current = null;
+    }
+  }, []);
 
   const navigateToCapital = useCallback(
     (index: number) => {
-      const capital = CAPITALS_DATA[index];
-      if (!capital) return;
+      if (!CAPITALS_DATA[index]) return;
 
-      lockCarouselScrollSync(4500);
+      clearNavTimer();
+      setIsNavigating(true);
+      lockCarouselScrollSync(2000);
+      scrollToCapitalMarker(index);
 
-      scrollToCapital(index, setActiveSection);
+      const onScrollEnd = () => {
+        unlockCarouselScrollSync();
+        setIsNavigating(false);
+        window.removeEventListener("scrollend", onScrollEnd);
+      };
+
+      if ("onscrollend" in window) {
+        window.addEventListener("scrollend", onScrollEnd, { once: true });
+      }
+
+      navTimerRef.current = setTimeout(() => {
+        unlockCarouselScrollSync();
+        setIsNavigating(false);
+        window.removeEventListener("scrollend", onScrollEnd);
+      }, 2200);
     },
-    [setActiveSection],
+    [clearNavTimer],
   );
 
   const handlePrev = useCallback(() => {
@@ -240,6 +230,21 @@ export function CapitalCubeCarousel({
     setDragOffset(0);
   }, [dragOffset, handlePrev, handleNext]);
 
+  useEffect(() => () => clearNavTimer(), [clearNavTimer]);
+
+  const updateParallaxFromPointer = useCallback(
+    (clientX: number, clientY: number) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      parallaxTargetRef.current = {
+        x: clampParallax(((clientX - rect.left) / rect.width - 0.5) * 2),
+        y: clampParallax(((clientY - rect.top) / rect.height - 0.5) * 2),
+      };
+    },
+    [],
+  );
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("button")) return;
     dragStartRef.current = e.clientX;
@@ -248,27 +253,9 @@ export function CapitalCubeCarousel({
     containerRef.current?.classList.add("cursor-grabbing");
   };
 
-  const updateParallaxFromPointer = useCallback(
-    (clientX: number, clientY: number) => {
-      const el = containerRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const px = ((clientX - rect.left) / rect.width - 0.5) * 2;
-      const py = ((clientY - rect.top) / rect.height - 0.5) * 2;
-      parallaxTarget.current = {
-        x: Math.max(-1, Math.min(1, px)),
-        y: Math.max(-1, Math.min(1, py)),
-      };
-      ensureParallaxLoop();
-    },
-    [ensureParallaxLoop],
-  );
-
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDraggingRef.current) {
-      updateParallaxFromPointer(e.clientX, e.clientY);
-      return;
-    }
+    updateParallaxFromPointer(e.clientX, e.clientY);
+    if (!isDraggingRef.current) return;
     setDragOffset(e.clientX - dragStartRef.current);
   };
 
@@ -276,21 +263,27 @@ export function CapitalCubeCarousel({
 
   const handleSceneLeave = useCallback(() => {
     setIsHovering(false);
-    parallaxTarget.current = { x: 0, y: 0 };
-    ensureParallaxLoop();
+    parallaxTargetRef.current = { x: 0, y: 0 };
     finishDrag();
-  }, [ensureParallaxLoop, finishDrag]);
+  }, [finishDrag]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     dragStartRef.current = e.touches[0].clientX;
     isDraggingRef.current = true;
     setIsDragging(true);
+    updateParallaxFromPointer(e.touches[0].clientX, e.touches[0].clientY);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    updateParallaxFromPointer(e.touches[0].clientX, e.touches[0].clientY);
     if (!isDraggingRef.current) return;
     setDragOffset(e.touches[0].clientX - dragStartRef.current);
   };
+
+  const sceneTiltX = parallax.y * -3.5;
+  const sceneTiltY = parallax.x * 5;
+  const perspectiveOriginX = 50 + parallax.x * 10;
+  const perspectiveOriginY = 48 + parallax.y * 8;
 
   return (
     <div className={`relative flex h-full w-full flex-col ${className}`}>
@@ -307,25 +300,44 @@ export function CapitalCubeCarousel({
         onTouchEnd={finishDrag}
         className="relative flex min-h-0 flex-1 cursor-grab items-center justify-center overflow-visible py-2"
         style={{
-          perspective: "1200px",
-          perspectiveOrigin: "center center",
+          perspective: "1400px",
+          perspectiveOrigin: `${perspectiveOriginX}% ${perspectiveOriginY}%`,
           transformStyle: "preserve-3d",
-          height: "440px",
+          height: `${metrics.sceneH}px`,
           width: "100%",
-          maxWidth: position >= 3.75 ? "860px" : "720px",
+          maxWidth: `${metrics.maxSceneW}px`,
+          transform: `rotateX(${sceneTiltX}deg) rotateY(${sceneTiltY}deg)`,
+          transition: isDragging || isNavigating ? "none" : "transform 0.35s ease-out",
         }}
       >
         {CAPITALS_DATA.map((capital, index) => {
-          const { isCenter, transform, opacity, zIndex, inView, transition } =
-            getCarouselItemStyle(index, position, dragOffset, isDragging, isScrubbing);
+          const {
+            focusT,
+            transform,
+            opacity,
+            zIndex,
+            visible,
+            transition,
+            dim,
+            pointerEvents,
+          } = getCarouselItemStyle(
+            index,
+            position,
+            dragOffset,
+            isNavigating,
+            isDragging,
+            metrics.spread,
+          );
 
-          if (!inView) return null;
+          if (!visible) return null;
 
-          const cubeParallax = isCenter
-            ? { x: parallax.x * 1.45, y: parallax.y * 1.45 }
-            : { x: parallax.x * 0.55, y: parallax.y * 0.55 };
-
-          const hoverScale = isCenter && isHovering && !isDragging ? 1.04 : 1;
+          const hoverLift =
+            focusT > 0.88 && isHovering && !isDragging ? 1.03 : 1;
+          const glowOpacity = Math.max(0, (focusT - 0.55) / 0.45);
+          const cubeParallax =
+            focusT > 0.6
+              ? { x: parallax.x * focusT, y: parallax.y * focusT }
+              : { x: 0, y: 0 };
 
           return (
             <div
@@ -333,9 +345,9 @@ export function CapitalCubeCarousel({
               onClick={() => {
                 if (index !== focusIdx) navigateToCapital(index);
               }}
-              className="absolute flex items-center justify-center pointer-events-auto"
+              className="absolute flex items-center justify-center"
               style={{
-                transform: `${transform} scale(${hoverScale})`,
+                transform: `${transform} scale(${hoverLift})`,
                 opacity,
                 zIndex,
                 transition,
@@ -343,17 +355,45 @@ export function CapitalCubeCarousel({
                 width: "280px",
                 height: "320px",
                 willChange: "transform, opacity",
+                pointerEvents,
               }}
             >
-              <RubikCube3D
-                mode="capital"
-                capitalIndex={capital.index}
-                sizeMultiplier={sizeMultiplier}
-                parallax={cubeParallax}
-                layerTwist={getCapitalCubeTwist(capital.index)}
-                assemblyOffset={getCapitalCubeAssembly(capital.index)}
-                className="relative z-10"
-              />
+              <div className="relative flex h-full w-full items-center justify-center">
+                {glowOpacity > 0.06 && (
+                  <div
+                    className="pointer-events-none absolute -inset-12 rounded-full"
+                    aria-hidden
+                    style={{
+                      opacity: glowOpacity * 0.85,
+                      background:
+                        "radial-gradient(circle, rgba(197,160,89,0.32) 0%, rgba(197,160,89,0.08) 45%, transparent 72%)",
+                    }}
+                  />
+                )}
+
+                {dim > 0.03 && (
+                  <div
+                    className="pointer-events-none absolute inset-0 z-20 rounded-2xl"
+                    aria-hidden
+                    style={{
+                      opacity: dim,
+                      background:
+                        "linear-gradient(145deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.06) 100%)",
+                    }}
+                  />
+                )}
+
+                <RubikCube3D
+                  mode="capital"
+                  capitalIndex={capital.index}
+                  sizeMultiplier={sizeMultiplier}
+                  parallax={cubeParallax}
+                  layerTwist={getCapitalCubeTwist(capital.index)}
+                  assemblyOffset={getCapitalCubeAssembly(capital.index)}
+                  faceImages={getCapitalCarouselCubeFaces(capital.index)}
+                  className="relative z-10"
+                />
+              </div>
             </div>
           );
         })}
@@ -376,18 +416,26 @@ export function CapitalCubeCarousel({
 
           <div className="flex items-center gap-2">
             {CAPITALS_DATA.map((capital, index) => {
-              const lit = index === focusIdx;
+              const distance = Math.abs(index - position);
+              const dotFocus = smoothstep(1 - distance / 0.85);
+              const isLit = dotFocus > 0.55;
+
               return (
                 <button
                   key={capital.id}
                   type="button"
                   onClick={() => navigateToCapital(index)}
-                  className="cursor-pointer rounded-full transition-all"
+                  className="cursor-pointer rounded-full transition-all duration-300 ease-out"
                   style={{
-                    width: lit ? 24 : 6,
+                    width: isLit ? 22 + dotFocus * 4 : 6,
                     height: 6,
-                    backgroundColor: lit ? "#C5A059" : "rgba(197,160,89,0.22)",
-                    boxShadow: lit ? "0 0 10px rgba(197,160,89,0.45)" : "none",
+                    backgroundColor: isLit
+                      ? `rgba(197,160,89,${0.55 + dotFocus * 0.45})`
+                      : "rgba(197,160,89,0.22)",
+                    boxShadow: isLit
+                      ? `0 0 ${8 + dotFocus * 6}px rgba(197,160,89,${0.25 + dotFocus * 0.35})`
+                      : "none",
+                    opacity: 0.45 + dotFocus * 0.55,
                   }}
                   aria-label={`Go to ${capital.id} capital`}
                 />

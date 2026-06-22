@@ -2,17 +2,24 @@ import { useEffect } from "react";
 import { useActiveSection } from "../context/ActiveSectionContext";
 import { CAPITALS_DATA } from "../features/capitals/capitalsData";
 import { isCarouselScrollSyncLocked } from "../features/capitals/carouselSyncLock";
+import {
+  SERIES_ANCHOR_Y,
+  carouselPositionToSection,
+  computeCarouselPositionFromMarkers,
+  getSeriesMarkerTops,
+  isPastLastCapital,
+  readLiveCarouselPosition,
+} from "../features/capitals/carouselScrollSync";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
+export { SERIES_ANCHOR_Y, computeCarouselPositionFromMarkers } from "../features/capitals/carouselScrollSync";
+
 const NAVBAR_OFFSET = 80;
 const DESKTOP_MQ = "(min-width: 1024px)";
-/** Y-position where each "0X / 06 Capital Series" label locks the carousel */
-export const SERIES_ANCHOR_Y = NAVBAR_OFFSET + 32;
-/** Snap to exact capital when its series label is within this many px of the anchor */
-const MARKER_SNAP_PX = 20;
+const SECTION_EPSILON = 0.0005;
 
 function mapProgressToCapitals(
   p: number,
@@ -24,57 +31,6 @@ function mapProgressToCapitals(
   setActiveSection(capitalIdx + 1, rawIdx - capitalIdx);
 }
 
-function getSeriesMarkerTops(): number[] | null {
-  const tops = CAPITALS_DATA.map((c) => {
-    const el = document.getElementById(`${c.id}-series-marker`);
-    return el ? el.getBoundingClientRect().top : null;
-  });
-  return tops.some((t) => t === null) ? null : (tops as number[]);
-}
-
-/**
- * Carousel index 0–5 from live marker Y positions vs SERIES_ANCHOR_Y.
- * Snaps to integer when a label is on the anchor line.
- */
-export function computeCarouselPositionFromMarkers(tops: number[]): number {
-  const anchor = SERIES_ANCHOR_Y;
-  const last = tops.length - 1;
-
-  for (let i = 0; i < tops.length; i++) {
-    if (Math.abs(tops[i] - anchor) < MARKER_SNAP_PX) {
-      return i;
-    }
-  }
-
-  if (tops[0] > anchor) return 0;
-  if (tops[last] <= anchor) return last;
-
-  // Marker i has scrolled past the anchor; marker i+1 is still below it.
-  for (let i = 0; i < last; i++) {
-    const curr = tops[i];
-    const next = tops[i + 1];
-    if (curr <= anchor && next > anchor) {
-      const span = next - curr;
-      if (span <= 1) return i;
-      const t = 1 - (next - anchor) / span;
-      return i + Math.max(0, Math.min(1, t));
-    }
-  }
-
-  for (let i = last; i >= 0; i--) {
-    if (tops[i] <= anchor) return i;
-  }
-  return 0;
-}
-
-function applyCarouselPosition(
-  position: number,
-  setActiveSection: (index: number, progress: number) => void,
-) {
-  const clamped = Math.max(0, Math.min(CAPITALS_DATA.length - 1, position));
-  setActiveSection(Math.floor(clamped) + 1, clamped - Math.floor(clamped));
-}
-
 function resetCubeCanvasStyles() {
   const el = document.getElementById("cube-canvas-container");
   if (!el) return;
@@ -83,87 +39,153 @@ function resetCubeCanvasStyles() {
   gsap.set(el, { clearProps: "all" });
 }
 
-function applyCubeExitLift(): number {
+function smoothstep(t: number): number {
+  const c = Math.max(0, Math.min(1, t));
+  return c * c * (3 - 2 * c);
+}
+
+/** Entrance (slide up with #six-capitals) + exit (lift away after last capital). */
+function applyCubeScrollMotion(): void {
+  const section = document.getElementById("six-capitals");
   const inner = document.getElementById("cube-scroll-inner");
   const container = document.getElementById("cube-canvas-container");
   const natural = document.getElementById("natural");
-  if (!inner || !natural) return 0;
+  if (!section || !inner) return;
 
-  const naturalBottom = natural.getBoundingClientRect().bottom;
-  const viewHeight = window.innerHeight;
+  const vh = window.innerHeight;
+  const sectionRect = section.getBoundingClientRect();
 
-  // Scroll-locked exit: the cube stays centred while reading Natural, then once
-  // the section's bottom edge nears the bottom of the viewport it rides upward
-  // 1:1 with scroll — i.e. at exactly the page scroll speed — and is fully gone
-  // by the time the pin releases (naturalBottom === NAVBAR_OFFSET).
-  const exitStart = viewHeight * 0.92;
-  const travelMax = Math.max(1, exitStart - NAVBAR_OFFSET);
-
-  // distance grows by exactly 1px per 1px of scroll, so motion matches scroll.
-  const distance = Math.max(0, Math.min(travelMax, exitStart - naturalBottom));
-  const t = distance / travelMax;
-
-  const y = -distance;
-  // Keep the cube fully opaque through most of the exit; fade only the last leg.
-  const fade = t > 0.8 ? Math.max(0, 1 - (t - 0.8) / 0.2) : 1;
-
-  gsap.set(inner, { y, autoAlpha: fade, force3D: true, overwrite: "auto" });
-
-  if (container) {
-    if (t >= 0.999) {
+  if (sectionRect.bottom < NAVBAR_OFFSET || sectionRect.top > vh * 1.05) {
+    gsap.set(inner, { y: 108, autoAlpha: 0, scale: 0.86, force3D: true });
+    if (container) {
+      container.setAttribute("aria-hidden", "true");
       gsap.set(container, { autoAlpha: 0, pointerEvents: "none" });
-    } else {
-      gsap.set(container, { autoAlpha: 1, pointerEvents: "auto" });
+    }
+    return;
+  }
+
+  const enterStart = vh * 0.97;
+  const enterEnd = vh * 0.32;
+  const enterT = smoothstep((enterStart - sectionRect.top) / (enterStart - enterEnd));
+
+  let y = (1 - enterT) * 104;
+  let opacity = 0.08 + enterT * 0.92;
+  let scale = 0.86 + enterT * 0.14;
+
+  if (natural) {
+    const naturalBottom = natural.getBoundingClientRect().bottom;
+    const exitStart = vh * 0.88;
+    const travelMax = Math.max(1, exitStart - NAVBAR_OFFSET);
+    const distance = Math.max(0, Math.min(travelMax, exitStart - naturalBottom));
+    const exitT = smoothstep(distance / travelMax);
+
+    if (exitT > 0) {
+      y = -distance * (0.85 + exitT * 0.15);
+      opacity *= 1 - exitT;
+      scale *= 1 - exitT * 0.12;
     }
   }
 
-  return t;
+  gsap.set(inner, {
+    y,
+    autoAlpha: Math.max(0, opacity),
+    scale,
+    force3D: true,
+    transformOrigin: "center center",
+    overwrite: "auto",
+  });
+
+  if (container) {
+    const visible = enterT > 0.06 && opacity > 0.05;
+    if (visible) {
+      container.removeAttribute("aria-hidden");
+    } else {
+      container.setAttribute("aria-hidden", "true");
+    }
+    gsap.set(container, {
+      autoAlpha: visible ? 1 : 0,
+      pointerEvents: enterT > 0.38 && opacity > 0.18 ? "auto" : "none",
+    });
+  }
 }
 
 function showChapterCube() {
   const container = document.getElementById("cube-canvas-container");
-  const inner = document.getElementById("cube-scroll-inner");
-  if (inner) gsap.set(inner, { clearProps: "y,transform,opacity" });
   if (container) {
     container.removeAttribute("aria-hidden");
-    gsap.set(container, { autoAlpha: 1, visibility: "visible", pointerEvents: "auto" });
+    gsap.set(container, { autoAlpha: 1, visibility: "visible" });
   }
+  applyCubeScrollMotion();
 }
 
 function hideChapterCube() {
   const container = document.getElementById("cube-canvas-container");
+  const inner = document.getElementById("cube-scroll-inner");
+  if (inner) {
+    gsap.set(inner, { y: 108, autoAlpha: 0, scale: 0.86, force3D: true });
+  }
   if (container) {
     container.setAttribute("aria-hidden", "true");
     gsap.set(container, { autoAlpha: 0, pointerEvents: "none" });
   }
 }
 
-/** Past the last capital — hold Natural state while still inside the capitals chapter. */
-function isPastLastCapital(tops: number[]): boolean {
-  const anchor = SERIES_ANCHOR_Y;
-  const lastMarker = tops[tops.length - 1];
-  const endEl = document.getElementById("natural");
-  if (!endEl) return false;
-  const sectionBottom = endEl.getBoundingClientRect().bottom;
-  return lastMarker < anchor - 40 && sectionBottom < anchor;
-}
-
 function setupChapterCapitalsScroll(setActiveSection: (index: number, progress: number) => void) {
   const cleanups: (() => void)[] = [];
+  let lastIndex = -1;
+  let lastProgress = -1;
 
   const syncFromMarkers = () => {
     if (isCarouselScrollSyncLocked()) return;
+
+    const live = readLiveCarouselPosition();
+    if (live != null) {
+      const { index, progress } = carouselPositionToSection(live);
+      if (
+        index !== lastIndex ||
+        Math.abs(progress - lastProgress) > SECTION_EPSILON
+      ) {
+        lastIndex = index;
+        lastProgress = progress;
+        setActiveSection(index, progress);
+      }
+      return;
+    }
+
     const tops = getSeriesMarkerTops();
     if (!tops) return;
 
     if (isPastLastCapital(tops)) {
-      setActiveSection(CAPITALS_DATA.length, 0);
+      if (lastIndex !== CAPITALS_DATA.length || lastProgress !== 0) {
+        lastIndex = CAPITALS_DATA.length;
+        lastProgress = 0;
+        setActiveSection(CAPITALS_DATA.length, 0);
+      }
       return;
     }
 
     const position = computeCarouselPositionFromMarkers(tops);
-    applyCarouselPosition(position, setActiveSection);
+    const { index, progress } = carouselPositionToSection(position);
+    if (
+      index !== lastIndex ||
+      Math.abs(progress - lastProgress) > SECTION_EPSILON
+    ) {
+      lastIndex = index;
+      lastProgress = progress;
+      setActiveSection(index, progress);
+    }
   };
+
+  let raf = 0;
+  const tick = () => {
+    syncFromMarkers();
+    if (window.matchMedia(DESKTOP_MQ).matches) {
+      applyCubeScrollMotion();
+    }
+    raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+  cleanups.push(() => cancelAnimationFrame(raf));
 
   const introHold = ScrollTrigger.create({
     trigger: "#six-capitals-intro",
@@ -178,8 +200,6 @@ function setupChapterCapitalsScroll(setActiveSection: (index: number, progress: 
   if (window.matchMedia(DESKTOP_MQ).matches) {
     resetCubeCanvasStyles();
 
-    let lastLiftLog = -1;
-
     const pinTrigger = ScrollTrigger.create({
       trigger: "#six-capitals-intro",
       start: `top ${NAVBAR_OFFSET}px`,
@@ -189,26 +209,9 @@ function setupChapterCapitalsScroll(setActiveSection: (index: number, progress: 
       pinSpacing: false,
       anticipatePin: 1,
       invalidateOnRefresh: true,
-      onUpdate: () => {
-        const lift = applyCubeExitLift();
-        if (lift > 0.04 && Math.abs(lift - lastLiftLog) > 0.07) {
-          lastLiftLog = lift;
-        }
-      },
       onEnterBack: () => {
-        lastLiftLog = -1;
         showChapterCube();
         requestAnimationFrame(() => ScrollTrigger.refresh());
-      },
-      onLeave: (self) => {
-        lastLiftLog = -1;
-        if (self.direction === 1) {
-          hideChapterCube();
-        }
-      },
-      onLeaveBack: () => {
-        lastLiftLog = -1;
-        hideChapterCube();
       },
     });
     cleanups.push(() => pinTrigger.kill());
@@ -230,16 +233,6 @@ function setupChapterCapitalsScroll(setActiveSection: (index: number, progress: 
     });
     cleanups.push(() => leadershipGuard.kill());
   }
-
-  const markerSync = ScrollTrigger.create({
-    trigger: "#universal-capitals-wrapper",
-    start: "top bottom",
-    endTrigger: "#natural",
-    end: "bottom top",
-    onUpdate: syncFromMarkers,
-    invalidateOnRefresh: true,
-  });
-  cleanups.push(() => markerSync.kill());
 
   syncFromMarkers();
 

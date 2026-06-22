@@ -11,6 +11,7 @@ import {
   type CubeLayerTwist,
   type CubeAssemblyOffset,
 } from "../../features/cube-animation/utils/cubeRotationHelpers";
+import { CAROUSEL_CUBE_ASSEMBLY } from "../../features/capitals/capitalCubeTwists";
 import {
   CUBE_FACE_IMAGES,
   CUBE_FACE_ORDER,
@@ -39,6 +40,8 @@ export interface RubikCube3DProps {
   layerTwist?: Partial<CubeLayerTwist>;
   /** Whole-cube rotation offset (degrees) applied in `mode="capital"`. */
   assemblyOffset?: Partial<CubeAssemblyOffset>;
+  /** Override default face textures (e.g. per-capital carousel cubes). */
+  faceImages?: Partial<Record<CubeFaceName, string>>;
 }
 
 type FaceName = CubeFaceName;
@@ -51,14 +54,18 @@ function ImageSticker({
   gridY,
   visible,
   textureReady,
+  faceImages,
 }: {
   face: FaceName;
   gridX: number;
   gridY: number;
   visible: boolean;
   textureReady: boolean;
+  faceImages?: Partial<Record<CubeFaceName, string>>;
 }) {
   const asset = CUBE_FACE_IMAGES[face];
+  const src = faceImages?.[face] ?? asset?.src;
+  const label = asset?.label ?? face;
   const posX = ((gridX + 1) / 2) * 100;
   const posY = ((gridY + 1) / 2) * 100;
 
@@ -66,13 +73,13 @@ function ImageSticker({
     <div
       className="relative h-full w-full overflow-hidden rounded-[5px]"
       style={{
-        backgroundImage: visible && textureReady ? `url(${asset.src})` : undefined,
+        backgroundImage: visible && textureReady && src ? `url(${src})` : undefined,
         backgroundSize: "300% 300%",
         backgroundPosition: `${posX}% ${posY}%`,
         backgroundRepeat: "no-repeat",
       }}
       role="img"
-      aria-label={asset.label}
+      aria-label={label}
     >
       <div className="pointer-events-none h-full w-full bg-linear-to-br from-white/15 via-transparent to-black/45" />
       <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/50" />
@@ -162,6 +169,7 @@ const PhotoCubeBlock = React.memo(function PhotoCubeBlock({
   capitalPose,
   layerTwist,
   isFaceLoaded,
+  faceImages,
 }: {
   cx: number;
   cy: number;
@@ -174,8 +182,11 @@ const PhotoCubeBlock = React.memo(function PhotoCubeBlock({
   capitalPose?: boolean;
   layerTwist?: Partial<CubeLayerTwist>;
   isFaceLoaded: (face: FaceName) => boolean;
+  faceImages?: Partial<Record<CubeFaceName, string>>;
 }) {
   const halfSize = cubieSize / 2;
+  const hasFaceTexture = (face: FaceName) =>
+    faceImages ? Boolean(faceImages[face]) : true;
   const transformStyle = capitalPose
     ? hasActiveTwist(layerTwist)
       ? getTwistedCubieTransformMatrix(cx, cy, cz, layerTwist!, cubieSize, gap)
@@ -221,78 +232,84 @@ const PhotoCubeBlock = React.memo(function PhotoCubeBlock({
       }}
     >
       <div style={{ ...faceBaseStyle, transform: `translateZ(${halfSize}px)` }}>
-        {hasFront ? (
+        {hasFront && hasFaceTexture("front") ? (
           <ImageSticker
             face="front"
             gridX={cx}
             gridY={cy}
             visible={hasFront}
             textureReady={isFaceLoaded("front")}
+            faceImages={faceImages}
           />
         ) : (
           plastic
         )}
       </div>
       <div style={{ ...faceBaseStyle, transform: `translateZ(${-halfSize}px) rotateY(180deg)` }}>
-        {hasBack ? (
+        {hasBack && hasFaceTexture("back") ? (
           <ImageSticker
             face="back"
             gridX={cx}
             gridY={cy}
             visible={hasBack}
             textureReady={isFaceLoaded("back")}
+            faceImages={faceImages}
           />
         ) : (
           plastic
         )}
       </div>
       <div style={{ ...faceBaseStyle, transform: `translateX(${-halfSize}px) rotateY(-90deg)` }}>
-        {hasLeft ? (
+        {hasLeft && hasFaceTexture("left") ? (
           <ImageSticker
             face="left"
             gridX={cz}
             gridY={cy}
             visible={hasLeft}
             textureReady={isFaceLoaded("left")}
+            faceImages={faceImages}
           />
         ) : (
           plastic
         )}
       </div>
       <div style={{ ...faceBaseStyle, transform: `translateX(${halfSize}px) rotateY(90deg)` }}>
-        {hasRight ? (
+        {hasRight && hasFaceTexture("right") ? (
           <ImageSticker
             face="right"
             gridX={cz}
             gridY={cy}
             visible={hasRight}
             textureReady={isFaceLoaded("right")}
+            faceImages={faceImages}
           />
         ) : (
           plastic
         )}
       </div>
       <div style={{ ...faceBaseStyle, transform: `translateY(${-halfSize}px) rotateX(90deg)` }}>
-        {hasTop ? (
+        {hasTop && hasFaceTexture("top") ? (
           <ImageSticker
             face="top"
             gridX={cx}
             gridY={cz}
             visible={hasTop}
             textureReady={isFaceLoaded("top")}
+            faceImages={faceImages}
           />
         ) : (
           plastic
         )}
       </div>
       <div style={{ ...faceBaseStyle, transform: `translateY(${halfSize}px) rotateX(-90deg)` }}>
-        {hasBottom ? (
+        {hasBottom && hasFaceTexture("bottom") ? (
           <ImageSticker
             face="bottom"
             gridX={cx}
             gridY={cz}
             visible={hasBottom}
             textureReady={isFaceLoaded("bottom")}
+            faceImages={faceImages}
           />
         ) : (
           plastic
@@ -317,6 +334,7 @@ export function RubikCube3D({
   scrollSectionProgress = 0,
   layerTwist,
   assemblyOffset,
+  faceImages,
 }: RubikCube3DProps) {
   const isLoading = mode === "loading";
   const isInteractive = mode === "interactive";
@@ -329,13 +347,18 @@ export function RubikCube3D({
 
   const priorityFaces = useMemo((): CubeFaceName[] => {
     if (isCapital) {
+      if (faceImages && Object.keys(faceImages).length > 0) {
+        return (["top", "right", "left"] as CubeFaceName[]).filter(
+          (face) => faceImages[face],
+        );
+      }
       const primary = CAPITAL_INDEX_TO_FACE[Math.min(6, Math.max(1, capitalIndex)) - 1];
       return [primary, "front", "right", "top"];
     }
     return ["front", "right", "top"];
-  }, [isCapital, capitalIndex]);
+  }, [isCapital, capitalIndex, faceImages]);
 
-  const { isFaceLoaded } = useCubeFaceTextures(priorityFaces);
+  const { isFaceLoaded } = useCubeFaceTextures(priorityFaces, faceImages);
   const spinY = useContinuousSpin(isInteractive, 22);
 
   const solveProgress = externalSolveProgress ?? (isSolved || isInteractive ? 1 : 0);
@@ -357,8 +380,7 @@ export function RubikCube3D({
 
   const assembly = useMemo(() => {
     if (isCapital) {
-      const clamped = Math.min(6, Math.max(1, capitalIndex));
-      return getCapitalAssemblyRotation(clamped, parallax, assemblyOffset);
+      return getCapitalAssemblyRotation(parallax, assemblyOffset, CAROUSEL_CUBE_ASSEMBLY);
     }
 
     if (isScroll) {
@@ -386,7 +408,7 @@ export function RubikCube3D({
       y: ISO_CAMERA.y + orbit,
       z: ISO_CAMERA.z,
     };
-  }, [isCapital, capitalIndex, isInteractive, isSolved, isScroll, isLoading, parallax.x, parallax.y, spinY, solveProgress, scrollSectionIndex, scrollSectionProgress, assemblyOffset]);
+  }, [isCapital, isInteractive, isSolved, isScroll, isLoading, parallax.x, parallax.y, spinY, solveProgress, scrollSectionIndex, scrollSectionProgress, assemblyOffset]);
 
   const cubeExtent = cubieSize * 3 + gap * 2;
   const stage = cubeExtent + 120;
@@ -464,6 +486,7 @@ export function RubikCube3D({
                 capitalPose={isCapital}
                 layerTwist={layerTwist}
                 isFaceLoaded={isFaceLoaded}
+                faceImages={faceImages}
               />
             ))}
           </div>
