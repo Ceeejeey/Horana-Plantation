@@ -1,0 +1,40 @@
+{
+  "name": "horana-plantation",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "clean": "turbo clean && rm -rf node_modules/.cache",
+    "firebase:emulators": "firebase emulators:start",
+    "firebase:deploy": "node scripts/deploy.mjs",
+    "firebase:deploy:hosting": "node scripts/deploy.mjs --only hosting",
+    "firebase:deploy:functions": "node scripts/deploy.mjs --only functions",
+    "firebase:deploy:firestore": "firebase deploy --only firestore:rules,firestore:indexes",
+    "firebase:test:live": "node scripts/test-deploy.mjs",
+    "release:on": "node scripts/set-release.mjs on",
+    "release:off": "node scripts/set-release.mjs off",
+    "release:status": "node scripts/set-release.mjs status",
+    "release:on:emu": "node scripts/set-release.mjs on --emulator",
+    "release:off:emu": "node scripts/set-release.mjs off --emulator"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "firebase-admin": "^13.4.0",
+    "firebase-tools": "^14.4.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "turbo": "^2.5.4",
+    "typescript": "~5.8.2"
+  },
+  "packageManager": "npm@10.9.2",
+  "engines": {
+    "node": ">=20"
+  }
+}

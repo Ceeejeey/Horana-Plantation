@@ -1,0 +1,17 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Chat session metadata — server writes via Admin SDK only in production.
+    // Clients may read their own session summaries when authenticated (extend as needed).
+    match /chatSessions/{sessionId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    match /appConfig/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

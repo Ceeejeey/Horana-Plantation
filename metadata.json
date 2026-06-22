@@ -1,0 +1,6 @@
+{
+  "name": "Horana Plantations PLC",
+  "description": "Alignment and Complexity Solved. Explore the 6 Capitals of Horana Plantations PLC through an interactive scroll-driven 3D experience.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

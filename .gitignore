@@ -1,0 +1,22 @@
+node_modules/
+build/
+dist/
+# Compiled Cloud Functions output (TypeScript → packages/functions/lib)
+packages/functions/lib/
+coverage/
+.turbo/
+.firebase/
+*.log
+.DS_Store
+.env*
+!.env.example
+firebase-service-account.json
+secrets/
+firebase-debug.log
+firebase-debug.*.log
+ui-debug.log
+
+# Capital cube face photos live in ../Capital pages/ (outside repo)
+apps/web/src/assets/capitals-cube/
+apps/web/src/assets/loading-animation-image/*.webp
+apps/web/src/assets/loading-animation-image/thumb/
