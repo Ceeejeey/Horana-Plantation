@@ -9,6 +9,7 @@ import {
   getCubeAssemblyRotation,
   type LayerAngles,
   type CubeLayerTwist,
+  type CubeAssemblyOffset,
 } from "../../features/cube-animation/utils/cubeRotationHelpers";
 import {
   CUBE_FACE_IMAGES,
@@ -36,6 +37,8 @@ export interface RubikCube3DProps {
   scrollSectionProgress?: number;
   /** Per-row / column / face twist (degrees) applied in `mode="capital"`. */
   layerTwist?: Partial<CubeLayerTwist>;
+  /** Whole-cube rotation offset (degrees) applied in `mode="capital"`. */
+  assemblyOffset?: Partial<CubeAssemblyOffset>;
 }
 
 type FaceName = CubeFaceName;
@@ -313,6 +316,7 @@ export function RubikCube3D({
   scrollSectionIndex = 0,
   scrollSectionProgress = 0,
   layerTwist,
+  assemblyOffset,
 }: RubikCube3DProps) {
   const isLoading = mode === "loading";
   const isInteractive = mode === "interactive";
@@ -354,7 +358,7 @@ export function RubikCube3D({
   const assembly = useMemo(() => {
     if (isCapital) {
       const clamped = Math.min(6, Math.max(1, capitalIndex));
-      return getCapitalAssemblyRotation(clamped, parallax);
+      return getCapitalAssemblyRotation(clamped, parallax, assemblyOffset);
     }
 
     if (isScroll) {
@@ -382,7 +386,7 @@ export function RubikCube3D({
       y: ISO_CAMERA.y + orbit,
       z: ISO_CAMERA.z,
     };
-  }, [isCapital, capitalIndex, isInteractive, isSolved, isScroll, isLoading, parallax.x, parallax.y, spinY, solveProgress, scrollSectionIndex, scrollSectionProgress]);
+  }, [isCapital, capitalIndex, isInteractive, isSolved, isScroll, isLoading, parallax.x, parallax.y, spinY, solveProgress, scrollSectionIndex, scrollSectionProgress, assemblyOffset]);
 
   const cubeExtent = cubieSize * 3 + gap * 2;
   const stage = cubeExtent + 120;

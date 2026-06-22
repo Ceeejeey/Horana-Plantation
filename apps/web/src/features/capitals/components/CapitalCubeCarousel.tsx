@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { CAPITALS_DATA } from "../capitalsData";
-import { getCapitalCubeTwist } from "../capitalCubeTwists";
+import { getCapitalCubeTwist, getCapitalCubeAssembly } from "../capitalCubeTwists";
 import { RubikCube3D } from "../../../components/common/RubikCube3D";
 import { useActiveSection } from "../../../context/ActiveSectionContext";
 import {
@@ -351,6 +351,7 @@ export function CapitalCubeCarousel({
                 sizeMultiplier={sizeMultiplier}
                 parallax={cubeParallax}
                 layerTwist={getCapitalCubeTwist(capital.index)}
+                assemblyOffset={getCapitalCubeAssembly(capital.index)}
                 className="relative z-10"
               />
             </div>

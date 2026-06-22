@@ -481,17 +481,24 @@ export function hasActiveTwist(twist?: Partial<CubeLayerTwist> | null): boolean 
   return Object.values(twist).some((v) => typeof v === "number" && Math.abs(v) > 0.01);
 }
 
+export interface CubeAssemblyOffset {
+  x: number;
+  y: number;
+  z: number;
+}
+
 /** Per-capital face camera — Financial front, Manufactured right, Intellectual top, etc. */
 export function getCapitalAssemblyRotation(
   capitalIndex: number,
   parallax: { x: number; y: number } = { x: 0, y: 0 },
+  offset: Partial<CubeAssemblyOffset> = {},
 ): { x: number; y: number; z: number } {
   const clamped = Math.min(6, Math.max(1, capitalIndex));
   const base = getCubeAssemblyRotation(clamped, 0);
   return {
-    x: base.x - parallax.y * 5,
-    y: base.y + parallax.x * 8,
-    z: base.z + parallax.x * 2,
+    x: base.x + (offset.x ?? 0) - parallax.y * 5,
+    y: base.y + (offset.y ?? 0) + parallax.x * 8,
+    z: base.z + (offset.z ?? 0) + parallax.x * 2,
   };
 }
 
